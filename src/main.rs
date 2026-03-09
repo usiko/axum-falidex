@@ -1,7 +1,10 @@
+mod db;
+use db::mongo::connect;
 use axum::{
     routing::get,
     Router,
 };
+use axum::response::IntoResponse;
 
 #[tokio::main]
 async fn main() {
@@ -35,7 +38,12 @@ async fn root() -> String {
 }
 async fn get_foo() {}
 async fn post_foo() {}
-async fn foo_bar() {}
+async fn foo_bar() -> impl IntoResponse {
+    let client = connect().await.expect("Failed to connect");
+    let db = client.database("axum");
+
+   format!("Using database: {}", db.name())
+}
 
 
 async fn get_current_weather() -> Result<String, reqwest::Error> {
