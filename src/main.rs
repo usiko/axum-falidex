@@ -1,21 +1,15 @@
 mod db;
-use db::mongo::connect;
-use axum::{
-    routing::get,
-    Router,
-};
 use axum::response::IntoResponse;
+use axum::{Router, routing::get};
+use db::mongo::MongoDB;
 
 #[tokio::main]
 async fn main() {
-    // build our application with a single route
-    // our router
-
-    let w_api_key="51c6f97699546a4064ba2ef45de0aa14";
-let app = Router::new()
-    .route("/", get(root))
-    .route("/foo", get(get_foo).post(post_foo))
-    .route("/foo/bar", get(foo_bar));
+    let app = Router::new()
+        .route("/", get(root))
+        .route("/foo", get(get_foo).post(post_foo))
+        .route("/persistence/get", get(get_persistence))
+        .route("/persistence/set", get(set_persistence));
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -38,16 +32,25 @@ async fn root() -> String {
 }
 async fn get_foo() {}
 async fn post_foo() {}
-async fn foo_bar() -> impl IntoResponse {
-    let client = connect().await.expect("Failed to connect");
-    let db = client.database("axum");
-
-   format!("Using database: {}", db.name())
+async fn get_persistence() -> impl IntoResponse {
+    let db = MongoDB::new().await.expect("Failed to connect");
+    let result = db.get("test".to_string()).await.expect("Failed to get");
+    result
+}
+async fn set_persistence() -> impl IntoResponse {
+    let db = MongoDB::new().await.expect("Failed to connect");
+    let result = db
+        .set("test".to_string(), "another value".to_string(), true)
+        .await
+        .expect("Failed to get");
+    result
 }
 
-
 async fn get_current_weather() -> Result<String, reqwest::Error> {
-    let url = format!("https://api.openweathermap.org/data/2.5/weather?lat=43.0&lon=6.6&appid={}","eb0b873a85379b2759eda56604289ce1");
+    let url = format!(
+        "https://api.openweathermap.org/data/2.5/weather?lat=43.0&lon=6.6&appid={}",
+        "eb0b873a85379b2759eda56604289ce1"
+    );
     let response = reqwest::get(url).await?;
 
     let body = response.text().await?;

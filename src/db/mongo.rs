@@ -2,6 +2,7 @@ use mongodb::{
     Client, Collection, Database,
     bson::{Document, doc},
     error::Result,
+    options::UpdateOptions,
 };
 
 use serde::{Deserialize, Serialize};
@@ -46,19 +47,21 @@ impl MongoDB {
         }
     }
 
-    pub async fn set(&self, key: String, value: String) -> Result<()> {
+    pub async fn set(&self, key: String, value: String, override_existing: bool) -> Result<()> {
         let col: Collection<Persistence> = self.get_col();
-        let doc = self.get_doc(key.clone()).await?;
 
-        if doc.is_some() {
-            return Err(mongodb::error::Error::from(std::io::Error::new(
-                std::io::ErrorKind::AlreadyExists,
-                "already exist",
-            )));
-        }
+        let filter = doc! { "name": &key };
 
-        let insert_struct = Persistence { name: key, value };
-        col.insert_one(insert_struct).await?;
+        let update = doc! {
+            "$set": {
+                "name": key,
+                "value": value
+            }
+        };
+
+        let options = UpdateOptions::builder().upsert(override_existing).build();
+
+        col.update_one(filter, update).with_options(options).await?;
 
         Ok(())
     }
