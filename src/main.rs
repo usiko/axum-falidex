@@ -1,6 +1,6 @@
 mod db;
 use axum::response::IntoResponse;
-use axum::{Router, routing::get};
+use axum::{Json, Router, routing::get};
 use db::mongo::MongoDB;
 
 #[tokio::main]
@@ -8,8 +8,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(root))
         .route("/foo", get(get_foo).post(post_foo))
-        .route("/persistence/get", get(get_persistence))
-        .route("/persistence/set", get(set_persistence));
+        .route("/persistence", get(get_persistence).post(set_persistence));
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -37,10 +36,10 @@ async fn get_persistence() -> impl IntoResponse {
     let result = db.get("test".to_string()).await.expect("Failed to get");
     result
 }
-async fn set_persistence() -> impl IntoResponse {
+async fn set_persistence(body: String) -> impl IntoResponse {
     let db = MongoDB::new().await.expect("Failed to connect");
     let result = db
-        .set("test".to_string(), "another value".to_string(), true)
+        .set("test".to_string(), body, true)
         .await
         .expect("Failed to get");
     result
