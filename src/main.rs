@@ -1,15 +1,18 @@
 mod db;
 use axum::response::IntoResponse;
-use axum::{Json, Router, routing::get};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use db::mongo::MongoDB;
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new()
+    let free = Router::new()
         .route("/", get(root))
-        .route("/foo", get(get_foo).post(post_foo))
-        .route("/persistence", get(get_persistence).post(set_persistence));
-
+        .route("/auth", post(auth));
+    let protected = Router::new().route("/persistence", get(get_persistence).post(set_persistence));
+    let app = free.merge(protected);
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -29,17 +32,19 @@ async fn root() -> String {
     // weather est déjà une String, pas besoin de unwrap
     format!("{}\n{}", base_message, weather)
 }
-async fn get_foo() {}
-async fn post_foo() {}
+async fn auth(val: String) {}
 async fn get_persistence() -> impl IntoResponse {
     let db = MongoDB::new().await.expect("Failed to connect");
-    let result = db.get("test".to_string()).await.expect("Failed to get");
+    let result = db
+        .get_persistence("test".to_string())
+        .await
+        .expect("Failed to get");
     result
 }
 async fn set_persistence(body: String) -> impl IntoResponse {
     let db = MongoDB::new().await.expect("Failed to connect");
     let result = db
-        .set("test".to_string(), body, true)
+        .set_persistence("test".to_string(), body, true)
         .await
         .expect("Failed to get");
     result

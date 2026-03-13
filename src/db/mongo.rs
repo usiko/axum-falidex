@@ -1,6 +1,6 @@
 use mongodb::{
     Client, Collection, Database,
-    bson::{Document, doc},
+    bson::{Document, doc, oid::ObjectId},
     error::Result,
     options::UpdateOptions,
 };
@@ -10,6 +10,13 @@ use serde::{Deserialize, Serialize};
 struct Persistence {
     name: String,
     value: String,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct Users {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    id: Option<ObjectId>,
+    username: String,
+    pwd_hash: String,
 }
 
 pub struct MongoDB {
@@ -28,18 +35,24 @@ impl MongoDB {
         Ok(Self { client, db })
     }
 
-    fn get_col(&self) -> Collection<Persistence> {
+    fn get_col_persistence(&self) -> Collection<Persistence> {
         self.db.collection("text-persist")
     }
+    fn get_col_users(&self) -> Collection<Users> {
+        self.db.collection("users")
+    }
 
-    async fn get_doc(&self, key: String) -> Result<Option<Persistence>> {
-        let col = self.get_col();
+    async fn get_doc_persistence(&self, key: String) -> Result<Option<Persistence>> {
+        let col = self.get_col_persistence();
         let result = col.find_one(doc! { "name": key }).await?;
         Ok(result)
     }
 
-    pub async fn get(&self, key: String) -> std::result::Result<String, String> {
-        let doc = self.get_doc(key).await.map_err(|e| e.to_string())?;
+    pub async fn get_persistence(&self, key: String) -> std::result::Result<String, String> {
+        let doc = self
+            .get_doc_persistence(key)
+            .await
+            .map_err(|e| e.to_string())?;
 
         match doc {
             Some(p) => Ok(p.value),
@@ -47,8 +60,13 @@ impl MongoDB {
         }
     }
 
-    pub async fn set(&self, key: String, value: String, override_existing: bool) -> Result<()> {
-        let col: Collection<Persistence> = self.get_col();
+    pub async fn set_persistence(
+        &self,
+        key: String,
+        value: String,
+        override_existing: bool,
+    ) -> Result<()> {
+        let col: Collection<Persistence> = self.get_col_persistence();
 
         let filter = doc! { "name": &key };
 
@@ -65,10 +83,11 @@ impl MongoDB {
 
         Ok(())
     }
-}
 
-pub async fn connect() -> mongodb::error::Result<Client> {
-    let uri = "mongodb+srv://quentinusiko_db_user:58sErWBbkymGdUHb@cluster0.1vbyumm.mongodb.net/?appName=Cluster0";
-    let client = Client::with_uri_str(uri).await?;
-    Ok(client)
+    fn auth_user(&self, user: String, hash_pwd: String) {
+        let col = self.get_col_users();
+    }
+    fn get_user(&self, userId: String) {
+        let col = self.get_col_users();
+    }
 }
