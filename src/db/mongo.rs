@@ -1,48 +1,71 @@
-use mongodb::{ 
-	bson::{Document, doc},
-	Client,
-	Collection 
+use mongodb::{
+    Client, Collection, Database,
+    bson::{Document, doc},
+    error::Result,
 };
+
+use serde::{Deserialize, Serialize};
+#[derive(Serialize, Deserialize, Debug)]
+struct Persistence {
+    name: String,
+    value: String,
+}
 
 pub struct MongoDB {
     pub client: Client,
     pub db: Database,
 }
-pub async fn connect() -> mongodb::error::Result<Self> {
-    // Replace the placeholder with your Atlas connection string
-    let uri = "mongodb+srv://quentinusiko_db_user:58sErWBbkymGdUHb@cluster0.1vbyumm.mongodb.net/?appName=Cluster0";
-    // Create a new client and connect to the server
-     let client = Client::with_uri_str(uri).await?;
+
+impl MongoDB {
+    pub async fn new() -> mongodb::error::Result<Self> {
+        // Replace the placeholder with your Atlas connection string
+        let uri = "mongodb+srv://quentinusiko_db_user:58sErWBbkymGdUHb@cluster0.1vbyumm.mongodb.net/?appName=Cluster0";
+        // Create a new client and connect to the server
+        let client = Client::with_uri_str(uri).await?;
         let db = client.database("axum");
 
         Ok(Self { client, db })
-   /*  let my_coll: Collection<Document> = database.collection("movies");
-    // Find a movie based on the title value
-    let my_movie = my_coll.find_one(doc! { "title": "The Perils of Pauline" }).await?;
-    // Print the document
-    println!("Found a movie:\n{:#?}", my_movie);
-    Ok(())*/
+    }
+
+    fn get_col(&self) -> Collection<Persistence> {
+        self.db.collection("text-persist")
+    }
+
+    async fn get_doc(&self, key: String) -> Result<Option<Persistence>> {
+        let col = self.get_col();
+        let result = col.find_one(doc! { "name": key }).await?;
+        Ok(result)
+    }
+
+    pub async fn get(&self, key: String) -> std::result::Result<String, String> {
+        let doc = self.get_doc(key).await.map_err(|e| e.to_string())?;
+
+        match doc {
+            Some(p) => Ok(p.value),
+            None => Err("not found".to_string()),
+        }
+    }
+
+    pub async fn set(&self, key: String, value: String) -> Result<()> {
+        let col: Collection<Persistence> = self.get_col();
+        let doc = self.get_doc(key.clone()).await?;
+
+        if doc.is_some() {
+            return Err(mongodb::error::Error::from(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                "already exist",
+            )));
+        }
+
+        let insert_struct = Persistence { name: key, value };
+        col.insert_one(insert_struct).await?;
+
+        Ok(())
+    }
 }
 
-fn get_uri()->String
-{
-    String::from("mongodb+srv://...")
-}
-
-
-fn get_col()-> Collection<Document>
-{
-    let db = Self::db;
-    db.collection("text-persist")
-}
-
-fn get(key:String, value:String)//:mongodb::error::Result<()>
-{
-    
-    let col:Collection<Document> = get_col();
-    let persist = col.find_one(doc! { "name": key }).await?;
-}
-fn set(key:String, value:String)//:mongodb::error::Result<()>
-{
-    
+pub async fn connect() -> mongodb::error::Result<Client> {
+    let uri = "mongodb+srv://quentinusiko_db_user:58sErWBbkymGdUHb@cluster0.1vbyumm.mongodb.net/?appName=Cluster0";
+    let client = Client::with_uri_str(uri).await?;
+    Ok(client)
 }
