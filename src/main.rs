@@ -1,17 +1,26 @@
 mod db;
+mod routes;
+mod state;
+
 use axum::response::IntoResponse;
 use axum::{
     Json, Router,
+    extract::State,
     routing::{get, post},
 };
-use db::mongo::MongoDB;
+use routes::persistence::{get_persistence, set_persistence};
+use state::{AppState, get_state};
 
 #[tokio::main]
 async fn main() {
+    let app_state = get_state().await;
     let free = Router::new()
         .route("/", get(root))
-        .route("/auth", post(auth));
-    let protected = Router::new().route("/persistence", get(get_persistence).post(set_persistence));
+        .route("/auth", post(auth))
+        .with_state(app_state.clone());
+    let protected = Router::new()
+        .route("/persistence", get(get_persistence).post(set_persistence))
+        .with_state(app_state);
     let app = free.merge(protected);
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -33,22 +42,6 @@ async fn root() -> String {
     format!("{}\n{}", base_message, weather)
 }
 async fn auth(val: String) {}
-async fn get_persistence() -> impl IntoResponse {
-    let db = MongoDB::new().await.expect("Failed to connect");
-    let result = db
-        .get_persistence("test".to_string())
-        .await
-        .expect("Failed to get");
-    result
-}
-async fn set_persistence(body: String) -> impl IntoResponse {
-    let db = MongoDB::new().await.expect("Failed to connect");
-    let result = db
-        .set_persistence("test".to_string(), body, true)
-        .await
-        .expect("Failed to get");
-    result
-}
 
 async fn get_current_weather() -> Result<String, reqwest::Error> {
     let url = format!(

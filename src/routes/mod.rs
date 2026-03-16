@@ -1,2 +1,2 @@
-pub mod get_persistence;
-pub mod set_persistence;
+pub mod persistence;
+pub mod users;
