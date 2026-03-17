@@ -6,15 +6,6 @@ use crate::db::model::UserAuth;
 use super::persistence;
 use super::user;
 
-use serde::{Deserialize, Serialize};
-#[derive(Debug, Serialize, Deserialize)]
-struct Users {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    id: Option<ObjectId>,
-    username: String,
-    pwd_hash: String,
-}
-
 pub struct MongoDB {
     pub client: Client,
     pub db: Database,
