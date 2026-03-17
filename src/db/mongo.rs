@@ -1,16 +1,12 @@
-use mongodb::{
-    Client, Collection, Database,
-    bson::{Document, doc, oid::ObjectId},
-    error::Result,
-    options::UpdateOptions,
-};
+use mongodb::{Client, Collection, Database, bson::oid::ObjectId};
+
+use crate::db::model::User;
+use crate::db::model::UserAuth;
+
+use super::persistence;
+use super::user;
 
 use serde::{Deserialize, Serialize};
-#[derive(Serialize, Deserialize, Debug)]
-struct Persistence {
-    name: String,
-    value: String,
-}
 #[derive(Debug, Serialize, Deserialize)]
 struct Users {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -35,29 +31,8 @@ impl MongoDB {
         Ok(Self { client, db })
     }
 
-    fn get_col_persistence(&self) -> Collection<Persistence> {
-        self.db.collection("text-persist")
-    }
-    fn get_col_users(&self) -> Collection<Users> {
-        self.db.collection("users")
-    }
-
-    async fn get_doc_persistence(&self, key: String) -> Result<Option<Persistence>> {
-        let col = self.get_col_persistence();
-        let result = col.find_one(doc! { "name": key }).await?;
-        Ok(result)
-    }
-
     pub async fn get_persistence(&self, key: String) -> std::result::Result<String, String> {
-        let doc = self
-            .get_doc_persistence(key)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        match doc {
-            Some(p) => Ok(p.value),
-            None => Err("not found".to_string()),
-        }
+        persistence::get(&self.db, key).await
     }
 
     pub async fn set_persistence(
@@ -65,29 +40,20 @@ impl MongoDB {
         key: String,
         value: String,
         override_existing: bool,
-    ) -> Result<()> {
-        let col: Collection<Persistence> = self.get_col_persistence();
-
-        let filter = doc! { "name": &key };
-
-        let update = doc! {
-            "$set": {
-                "name": key,
-                "value": value
-            }
-        };
-
-        let options = UpdateOptions::builder().upsert(override_existing).build();
-
-        col.update_one(filter, update).with_options(options).await?;
-
-        Ok(())
+    ) -> mongodb::error::Result<()> {
+        persistence::set(&self.db, key, value, override_existing).await
     }
 
-    fn auth_user(&self, user: String, hash_pwd: String) {
-        let col = self.get_col_users();
+    pub async fn auth_user(
+        &self,
+        user_name: String,
+        hash_pwd: String,
+    ) -> std::result::Result<UserAuth, String> {
+        let db = &self.db;
+        user::auth(db, user_name, hash_pwd).await
     }
-    fn get_user(&self, userId: String) {
-        let col = self.get_col_users();
+    pub async fn get_user(&self, user_id: String) -> std::result::Result<User, String> {
+        let db = &self.db;
+        user::get_by_id(db, user_id).await
     }
 }

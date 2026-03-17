@@ -2,14 +2,13 @@ mod db;
 mod routes;
 mod state;
 
-use axum::response::IntoResponse;
 use axum::{
-    Json, Router,
-    extract::State,
+    Router,
     routing::{get, post},
 };
 use routes::persistence::{get_persistence, set_persistence};
-use state::{AppState, get_state};
+use routes::users::{auth, get_user};
+use state::get_state;
 
 #[tokio::main]
 async fn main() {
@@ -20,6 +19,7 @@ async fn main() {
         .with_state(app_state.clone());
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))
+        .route("/user/{user_id}", get(get_user))
         .with_state(app_state);
     let app = free.merge(protected);
     // run our app with hyper, listening globally on port 3000
@@ -41,7 +41,6 @@ async fn root() -> String {
     // weather est déjà une String, pas besoin de unwrap
     format!("{}\n{}", base_message, weather)
 }
-async fn auth(val: String) {}
 
 async fn get_current_weather() -> Result<String, reqwest::Error> {
     let url = format!(
