@@ -1,6 +1,10 @@
-use crate::state::AppState;
+use crate::{routes::users::AppClaims, state::AppState};
 use axum::{extract::State, response::IntoResponse};
-pub async fn get_persistence(State(state): State<AppState>) -> impl IntoResponse {
+use axum_jwt::Claims;
+pub async fn get_persistence(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
     let result = state
         .db
         .get_persistence("test".to_string())

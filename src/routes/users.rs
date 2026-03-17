@@ -15,9 +15,9 @@ pub struct AuthToken {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String, // user_id
-    exp: usize,  // expiration
+pub struct AppClaims {
+    pub sub: String, // user_id
+    exp: usize,      // expiration
 }
 
 pub async fn auth(
@@ -65,7 +65,7 @@ fn generate_token(user_id: String) -> String {
         .unwrap()
         .timestamp() as usize;
 
-    let claims = Claims {
+    let claims = AppClaims {
         sub: user_id,
         exp: expiration,
     };
