@@ -10,6 +10,8 @@ use axum_jwt::{Decoder, jsonwebtoken::DecodingKey, layer};
 use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
+
+use crate::routes::users::get_current_user;
 #[tokio::main]
 async fn main() {
     let app_state = get_state().await;
@@ -17,10 +19,11 @@ async fn main() {
     let free = Router::new()
         .route("/", get(root))
         .route("/auth", post(auth))
+        .route("/user/id/{user_id}", get(get_user))
         .with_state(app_state.clone());
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))
-        .route("/user/{user_id}", get(get_user))
+        .route("/user/", get(get_current_user))
         .with_state(app_state)
         .layer(layer(jwt_decoder));
     let app = free.merge(protected);

@@ -22,17 +22,22 @@ impl MongoDB {
         Ok(Self { client, db })
     }
 
-    pub async fn get_persistence(&self, key: String) -> std::result::Result<String, String> {
-        persistence::get(&self.db, key).await
+    pub async fn get_persistence(
+        &self,
+        key: String,
+        user_id: String,
+    ) -> std::result::Result<String, String> {
+        persistence::get(&self.db, key, user_id).await
     }
 
     pub async fn set_persistence(
         &self,
         key: String,
         value: String,
+        user_id: String,
         override_existing: bool,
     ) -> mongodb::error::Result<()> {
-        persistence::set(&self.db, key, value, override_existing).await
+        persistence::set(&self.db, key, value, user_id, override_existing).await
     }
 
     pub async fn auth_user(

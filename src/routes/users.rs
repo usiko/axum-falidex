@@ -5,6 +5,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
+use axum_jwt::Claims;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::{Deserialize, Serialize};
@@ -46,6 +47,19 @@ pub async fn get_user(
     Path(user_id): Path<String>,
 ) -> Result<Json<User>, (StatusCode, String)> {
     print!("req user with id {}", user_id);
+    let result = state.db.get_user(user_id).await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to get user: {e}"),
+        )
+    })?;
+    Ok(Json(result))
+}
+pub async fn get_current_user(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+) -> Result<Json<User>, (StatusCode, String)> {
+    let user_id = token.sub;
     let result = state.db.get_user(user_id).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
