@@ -34,8 +34,10 @@ pub async fn auth(
                 format!("Failed to auth: {e}"),
             )
         })?;
+    let token = generate_token(result.id);
+    println!("{}", token);
     Ok(Json(AuthToken {
-        access_token: generate_token(result.id),
+        access_token: token,
     }))
 }
 
@@ -54,6 +56,7 @@ pub async fn get_user(
 }
 
 fn generate_token(user_id: String) -> String {
+    println!("gen token from{}", user_id);
     //let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET non défini");
     let secret =
         std::env::var("JWT_SECRET").unwrap_or("default_dev_secret_please_change".to_string());

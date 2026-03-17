@@ -6,12 +6,13 @@ use axum::{
     Router,
     routing::{get, post},
 };
+use axum_jwt::{Decoder, jsonwebtoken::DecodingKey, layer};
 use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
-
 #[tokio::main]
 async fn main() {
+    let decoder = get_jwt_decoder();
     let app_state = get_state().await;
     let free = Router::new()
         .route("/", get(root))
@@ -20,7 +21,8 @@ async fn main() {
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))
         .route("/user/{user_id}", get(get_user))
-        .with_state(app_state);
+        .with_state(app_state)
+        .layer(layer(decoder.clone()));
     let app = free.merge(protected);
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -53,4 +55,10 @@ async fn get_current_weather() -> Result<String, reqwest::Error> {
     println!("{}", body);
 
     Ok(body)
+}
+
+fn get_jwt_decoder() -> Decoder {
+    let secret =
+        std::env::var("JWT_SECRET").unwrap_or("default_dev_secret_please_change".to_string());
+    Decoder::from_key(DecodingKey::from_secret(secret.as_bytes()))
 }
