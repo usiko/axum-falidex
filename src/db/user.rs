@@ -8,7 +8,11 @@ use crate::db::model::{User, UserAuth};
 
 pub async fn get_by_id(db: &Database, id: String) -> std::result::Result<User, String> {
     let col = get_collection(db);
-    let obj_id = ObjectId::parse_str(id).expect("fail to parse id");
+    // essayer de parser l'id
+    let obj_id = match ObjectId::parse_str(&id) {
+        Ok(oid) => oid,
+        Err(_) => return Err("Invalid ObjectId".to_string()), // retourne une erreur si l'id est malformé
+    };
     let result = col
         .find_one(doc! { "_id": obj_id })
         .await
