@@ -1,4 +1,5 @@
 mod db;
+mod encrypt;
 mod routes;
 mod state;
 
