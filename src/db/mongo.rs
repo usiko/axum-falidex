@@ -44,7 +44,7 @@ impl MongoDB {
         &self,
         user_name: String,
         hash_pwd: String,
-    ) -> std::result::Result<UserAuth, String> {
+    ) -> std::result::Result<User, String> {
         let db = &self.db;
         user::auth(db, user_name, hash_pwd).await
     }

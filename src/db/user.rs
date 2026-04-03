@@ -22,11 +22,7 @@ pub async fn get_by_id(db: &Database, id: String) -> std::result::Result<User, S
         None => Err("not found".to_string()),
     }
 }
-pub async fn auth(
-    db: &Database,
-    name: String,
-    hash: String,
-) -> std::result::Result<UserAuth, String> {
+pub async fn auth(db: &Database, name: String, hash: String) -> std::result::Result<User, String> {
     let col = get_collection(db);
     let result = col
         .find_one(doc! { "username": name, "pwd_hash": hash })
@@ -34,12 +30,7 @@ pub async fn auth(
         .map_err(|e| e.to_string())?;
 
     match result {
-        Some(user) => Ok(UserAuth {
-            id: user
-                .id
-                .map(|id: ObjectId| id.to_string())
-                .unwrap_or_default(),
-        }),
+        Some(user) => Ok(user),
         None => Err("not found".to_string()),
     }
 }

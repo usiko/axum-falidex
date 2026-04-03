@@ -21,13 +21,15 @@ pub struct User {
         serialize_with = "serialize_object_id_as_hex"
     )]
     pub id: Option<ObjectId>,
-    username: String,
+    pub username: String,
     #[serde(skip_serializing)]
     pwd_hash: String,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserAuth {
     pub id: String,
+    pub username: String,
+    pub token: String,
 }
 
 #[derive(Serialize)]

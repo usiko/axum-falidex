@@ -8,12 +8,8 @@ use axum::{
 use axum_jwt::Claims;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
+use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct AuthToken {
-    access_token: String,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppClaims {
@@ -24,7 +20,7 @@ pub struct AppClaims {
 pub async fn auth(
     State(state): State<AppState>,
     Json(payload): Json<AuthRequest>,
-) -> Result<Json<AuthToken>, (StatusCode, Json<ErrorResult>)> {
+) -> Result<Json<UserAuth>, (StatusCode, Json<ErrorResult>)> {
     let result = state
         .db
         .auth_user(payload.user_name, payload.password)
@@ -41,10 +37,16 @@ pub async fn auth(
             };
             (status, Json(error))
         })?;
-    let token = generate_token(result.id);
+    let id = result
+        .id
+        .map(|id: ObjectId| id.to_string())
+        .unwrap_or_default();
+    let token = generate_token(id.clone());
     println!("{}", token);
-    Ok(Json(AuthToken {
-        access_token: token,
+    Ok(Json(UserAuth {
+        token,
+        id,
+        username: result.username,
     }))
 }
 
