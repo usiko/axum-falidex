@@ -30,6 +30,12 @@ pub struct UserAuth {
     pub id: String,
 }
 
+#[derive(Serialize)]
+pub struct ErrorResult {
+    pub error: String,
+    pub message: String,
+}
+
 fn serialize_object_id_as_hex<S>(value: &Option<ObjectId>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,

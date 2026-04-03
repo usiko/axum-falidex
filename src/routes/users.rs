@@ -1,4 +1,4 @@
-use crate::db::model::{AuthRequest, User, UserAuth};
+use crate::db::model::{AuthRequest, ErrorResult, User, UserAuth};
 use crate::state::AppState;
 use axum::{
     Json,
@@ -24,16 +24,22 @@ pub struct AppClaims {
 pub async fn auth(
     State(state): State<AppState>,
     Json(payload): Json<AuthRequest>,
-) -> Result<Json<AuthToken>, (StatusCode, String)> {
+) -> Result<Json<AuthToken>, (StatusCode, Json<ErrorResult>)> {
     let result = state
         .db
         .auth_user(payload.user_name, payload.password)
         .await
         .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to auth: {e}"),
-            )
+            let status = if e == "not found" {
+                StatusCode::UNAUTHORIZED
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            };
+            let error = ErrorResult {
+                error: e,
+                message: "unable to authenticate".to_string(),
+            };
+            (status, Json(error))
         })?;
     let token = generate_token(result.id);
     println!("{}", token);
