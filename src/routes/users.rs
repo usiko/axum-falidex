@@ -27,7 +27,7 @@ pub async fn auth(
 ) -> Result<Json<AuthToken>, (StatusCode, String)> {
     let result = state
         .db
-        .auth_user(payload.user_name, payload.hash)
+        .auth_user(payload.user_name, payload.password)
         .await
         .map_err(|e| {
             (

@@ -3265,6 +3265,7 @@ dependencies = [
  "serde",
  "simple_crypt",
  "tokio",
+ "tower-http",
 ]
 
 [[package]]

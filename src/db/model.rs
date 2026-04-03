@@ -10,7 +10,7 @@ pub struct Persistence {
 #[derive(Deserialize)]
 pub struct AuthRequest {
     pub user_name: String,
-    pub hash: String,
+    pub password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
