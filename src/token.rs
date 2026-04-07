@@ -8,17 +8,23 @@ use std::sync::Mutex;
 // ============================================================
 
 /// Crée un hash SHA256 à partir de: role|secret|timestamp
-fn hash_token(role: &str, secret: &str, timestamp: i64) -> String {
+fn hash_token(role: &str, timestamp: i64) -> String {
+    let secret = get_token_hash_key();
     let data = format!("{}|{}|{}", role, secret, timestamp);
     let mut hasher = Sha256::new();
     hasher.update(data.as_bytes());
     hex::encode(hasher.finalize())
 }
 
+pub fn show_dev_ex_token(role: &str) {
+    let now = Utc::now().timestamp();
+    println!("test token {}, timestamp {}", hash_token(role, now), now);
+}
+
 /// Vérifie un token temporaire (valide 60 secondes)
 /// - Vérifie que le timestamp n'est pas expiré
 /// - Vérifie que le hash correspond à role+secret+timestamp
-pub fn verify_temp_token(role: &str, secret: &str, timestamp: i64, hash_received: &str) -> bool {
+pub fn verify_temp_token(role: &str, timestamp: i64, hash_received: &str) -> bool {
     let now = Utc::now().timestamp();
 
     // Vérifier expiration (60 secondes)
@@ -27,9 +33,13 @@ pub fn verify_temp_token(role: &str, secret: &str, timestamp: i64, hash_received
     }
 
     // Vérifier le hash
-    let expected_hash = hash_token(role, secret, timestamp);
+    let expected_hash = hash_token(role, timestamp);
     expected_hash == hash_received
 }
+fn get_token_hash_key() -> String {
+    std::env::var("TOKEN_HASH_KEY").unwrap_or("default_dev_token_hash_please_change".to_string())
+}
+
 // ============================================================
 // ÉTAPE 2: GÉNÉRATION ET STOCKAGE TOKEN LONG TERME
 // ============================================================

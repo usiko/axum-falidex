@@ -1,31 +1,37 @@
 mod db;
 mod encrypt;
+mod middleware;
 mod routes;
 mod state;
 mod token;
 
+use crate::middleware::verify_token_middleware;
 use crate::routes::{token::verify_hash, users::get_current_user};
+use crate::token::show_dev_ex_token;
 use axum::http::{
-    Method, Request, Response,
+    Method,
     header::{AUTHORIZATION, CONTENT_TYPE},
 };
 use axum::{
     Router,
+    middleware::from_fn_with_state,
     routing::{get, post},
 };
-use axum_jwt::{Decoder, jsonwebtoken::DecodingKey, layer};
+use axum_jwt::layer;
 use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
 use tower_http::cors::{Any, CorsLayer};
 #[tokio::main]
 async fn main() {
+    show_dev_ex_token("visitor");
+
     let app_state = get_state().await;
     let jwt_decoder = app_state.jwt_decoder.clone();
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([CONTENT_TYPE, AUTHORIZATION])
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
         // allow requests from any origin
         .allow_origin(Any);
     let free = Router::new()
@@ -36,11 +42,19 @@ async fn main() {
         .route("/", get(root))
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
+        .layer(from_fn_with_state(
+            app_state.clone(),
+            verify_token_middleware,
+        ))
         .with_state(app_state.clone())
         .layer(cors.clone());
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))
         .route("/user/", get(get_current_user))
+        .layer(from_fn_with_state(
+            app_state.clone(),
+            verify_token_middleware,
+        ))
         .with_state(app_state)
         .layer(layer(jwt_decoder))
         .layer(cors);
