@@ -32,6 +32,17 @@ pub struct UserAuth {
     pub token: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TokenAuth {
+    pub role: String,
+    pub hash: String,
+    pub timestamp: i64,
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TokenAuthResponse {
+    pub token: String,
+}
+
 #[derive(Serialize)]
 pub struct ErrorResult {
     pub error: String,

@@ -2,8 +2,9 @@ mod db;
 mod encrypt;
 mod routes;
 mod state;
+mod token;
 
-use crate::routes::users::get_current_user;
+use crate::routes::{token::verify_hash, users::get_current_user};
 use axum::http::{
     Method, Request, Response,
     header::{AUTHORIZATION, CONTENT_TYPE},
@@ -28,6 +29,10 @@ async fn main() {
         // allow requests from any origin
         .allow_origin(Any);
     let free = Router::new()
+        .route("/token", post(verify_hash))
+        .with_state(app_state.clone())
+        .layer(cors.clone());
+    let token = Router::new()
         .route("/", get(root))
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
@@ -39,7 +44,7 @@ async fn main() {
         .with_state(app_state)
         .layer(layer(jwt_decoder))
         .layer(cors);
-    let app = free.merge(protected);
+    let app = free.merge(token).merge(protected);
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
