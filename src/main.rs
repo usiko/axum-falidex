@@ -39,6 +39,24 @@ async fn main() {
     let free = Router::new()
         .route("/token", post(verify_hash))
         .route("/collection/circulaires", get(falidex::circulaire::get))
+        .route(
+            "/collection/circulaires-colors",
+            get(falidex::circulaire_color::get),
+        )
+        .route("/collection/colors", get(falidex::color::get))
+        .route("/collection/filieres", get(falidex::filiere::get))
+        .route("/collection/placements", get(falidex::placement::get))
+        .route("/collection/positions", get(falidex::position::get))
+        .route(
+            "/collection/significations",
+            get(falidex::signification::get),
+        )
+        .route("/collection/symboles", get(falidex::symbole::get))
+        .route(
+            "/collection/symbole-accessoires",
+            get(falidex::symbole_accessoire::get),
+        )
+        .route("/collection/symboles-sens", get(falidex::symbole_sens::get))
         .with_state(app_state.clone())
         .layer(cors.clone());
     let token = Router::new()

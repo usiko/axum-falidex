@@ -1,1 +1,10 @@
 pub mod circulaire;
+pub mod circulaire_color;
+pub mod color;
+pub mod filiere;
+pub mod placement;
+pub mod position;
+pub mod signification;
+pub mod symbole;
+pub mod symbole_accessoire;
+pub mod symbole_sens;
