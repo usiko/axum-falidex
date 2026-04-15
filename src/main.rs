@@ -57,6 +57,8 @@ async fn main() {
             get(falidex::symbole_accessoire::get),
         )
         .route("/collection/symboles-sens", get(falidex::symbole_sens::get))
+        .route("/collection/links", get(falidex::link::get))
+        .route("/collection/link/{link_id}", get(falidex::link::get_item))
         .with_state(app_state.clone())
         .layer(cors.clone());
     let token = Router::new()

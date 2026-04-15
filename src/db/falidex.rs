@@ -67,6 +67,18 @@ pub async fn get_circulaires_colors() -> Result<Vec<CirculaireColor>, String> {
     Ok(circulaires_colors)
 }
 
+pub async fn get_links() -> Result<Vec<Link>, String> {
+    let data = read_file("src/mock/links.json".to_string()).map_err(|e| e.to_string())?;
+    let links: Vec<Link> = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+    Ok(links)
+}
+pub async fn get_link_item(item: String) -> Result<LinkDetail, String> {
+    let path = format!("src/mock/links/{}.json", item);
+    let data = read_file(path).map_err(|e| e.to_string())?;
+    let link_item: LinkDetail = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+    Ok(link_item)
+}
+
 fn read_file(path: String) -> Result<String, Box<dyn std::error::Error>> {
     let mut file =
         fs::File::open(&path).map_err(|e| format!("Erreur ouverture fichier '{}': {}", path, e))?;
