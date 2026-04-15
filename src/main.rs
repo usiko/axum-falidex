@@ -1,11 +1,13 @@
 mod db;
 mod encrypt;
 mod middleware;
+mod model;
 mod routes;
 mod state;
 mod token;
 
 use crate::middleware::verify_token_middleware;
+use crate::routes::falidex;
 use crate::routes::{token::verify_hash, users::get_current_user};
 use crate::token::show_dev_ex_token;
 use axum::http::{
@@ -36,6 +38,7 @@ async fn main() {
         .allow_origin(Any);
     let free = Router::new()
         .route("/token", post(verify_hash))
+        .route("/collection/circulaires", get(falidex::circulaire::get))
         .with_state(app_state.clone())
         .layer(cors.clone());
     let token = Router::new()
