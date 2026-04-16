@@ -38,6 +38,12 @@ async fn main() {
         .allow_origin(Any);
     let free = Router::new()
         .route("/token", post(verify_hash))
+        .with_state(app_state.clone())
+        .layer(cors.clone());
+    let token = Router::new()
+        .route("/", get(root))
+        .route("/auth", post(auth))
+        .route("/user/id/{user_id}", get(get_user))
         .route("/collection/circulaires", get(falidex::circulaire::get))
         .route(
             "/collection/circulaires-colors",
@@ -59,12 +65,6 @@ async fn main() {
         .route("/collection/symboles-sens", get(falidex::symbole_sens::get))
         .route("/collection/links", get(falidex::link::get))
         .route("/collection/link/{link_id}", get(falidex::link::get_item))
-        .with_state(app_state.clone())
-        .layer(cors.clone());
-    let token = Router::new()
-        .route("/", get(root))
-        .route("/auth", post(auth))
-        .route("/user/id/{user_id}", get(get_user))
         .layer(from_fn_with_state(
             app_state.clone(),
             verify_token_middleware,

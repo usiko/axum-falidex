@@ -61,7 +61,8 @@ pub struct Img {
 pub struct Symbole {
     name: String,
     id: String,
-    imgs: Vec<Img>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    imgs: Option<Vec<Img>>,
 }
 
 #[derive(Deserialize, Serialize)]
