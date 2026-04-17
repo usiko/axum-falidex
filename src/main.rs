@@ -1,11 +1,13 @@
 mod db;
 mod encrypt;
 mod middleware;
+mod model;
 mod routes;
 mod state;
 mod token;
 
 use crate::middleware::verify_token_middleware;
+use crate::routes::falidex;
 use crate::routes::{token::verify_hash, users::get_current_user};
 use crate::token::show_dev_ex_token;
 use axum::http::{
@@ -42,6 +44,27 @@ async fn main() {
         .route("/", get(root))
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
+        .route("/collection/circulaires", get(falidex::circulaire::get))
+        .route(
+            "/collection/circulaires-colors",
+            get(falidex::circulaire_color::get),
+        )
+        .route("/collection/colors", get(falidex::color::get))
+        .route("/collection/filieres", get(falidex::filiere::get))
+        .route("/collection/placements", get(falidex::placement::get))
+        .route("/collection/positions", get(falidex::position::get))
+        .route(
+            "/collection/significations",
+            get(falidex::signification::get),
+        )
+        .route("/collection/symboles", get(falidex::symbole::get))
+        .route(
+            "/collection/symbole-accessoires",
+            get(falidex::symbole_accessoire::get),
+        )
+        .route("/collection/symboles-sens", get(falidex::symbole_sens::get))
+        .route("/collection/links", get(falidex::link::get))
+        .route("/collection/link/{link_id}", get(falidex::link::get_item))
         .layer(from_fn_with_state(
             app_state.clone(),
             verify_token_middleware,
