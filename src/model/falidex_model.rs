@@ -87,6 +87,7 @@ pub struct CirculaireColor {
 #[derive(Deserialize, Serialize)]
 pub struct Link {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
     #[serde(rename = "lastUpdate")]
     last_update: String,
@@ -95,6 +96,7 @@ pub struct Link {
 #[derive(Deserialize, Serialize)]
 pub struct LinkDetail {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
     relations: Vec<LinkItem>,
     specificites: Vec<Specificite>,

@@ -143,23 +143,27 @@ pub async fn get_circulaires_colors(db: &Database) -> Result<Vec<CirculaireColor
         .try_collect()
         .await
         .map_err(|e| e.to_string())?;
-    /*let data =
-        read_file("src/mock/circulaires-colors.json".to_string()).map_err(|e| e.to_string())?;
-    let circulaires_colors: Vec<CirculaireColor> =
-        serde_json::from_str(&data).map_err(|e| e.to_string())?;*/
     Ok(circulaires_colors)
 }
 
-pub async fn get_links() -> Result<Vec<Link>, String> {
-    let data = read_file("src/mock/links.json".to_string()).map_err(|e| e.to_string())?;
-    let links: Vec<Link> = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-    Ok(links)
+pub async fn get_links(db: &Database) -> Result<Vec<Link>, String> {
+    let col: Collection<Link> = db.collection::<Link>("links");
+    let data: Vec<Link> = col
+        .find(doc! {})
+        .await
+        .map_err(|e| e.to_string())?
+        .try_collect()
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(data)
 }
-pub async fn get_link_item(item: String) -> Result<LinkDetail, String> {
-    let path = format!("src/mock/links/{}.json", item);
-    let data = read_file(path).map_err(|e| e.to_string())?;
-    let link_item: LinkDetail = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-    Ok(link_item)
+pub async fn get_link_item(db: &Database, item: String) -> Result<LinkDetail, String> {
+    let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
+    let result = col
+        .find_one(doc! { "_id": item})
+        .await
+        .map_err(|e| e.to_string())?;
+    result.ok_or("Link not found".to_string())
 }
 
 fn read_file(path: String) -> Result<String, Box<dyn std::error::Error>> {
