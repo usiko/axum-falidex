@@ -1,13 +1,12 @@
+use crate::{db::falidex::get_circulaires_colors, state::AppState};
 use axum::{
     Json,
     response::{IntoResponse, Response},
 };
-use reqwest::StatusCode;
+use axum::{extract::State, http::status::StatusCode};
 
-use crate::db::falidex::get_circulaires_colors;
-
-pub async fn get() -> Response {
-    match get_circulaires_colors().await {
+pub async fn get(State(state): State<AppState>) -> Response {
+    match get_circulaires_colors(&state.db.db).await {
         Ok(circulaires_colors) => Json(circulaires_colors).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
