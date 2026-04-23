@@ -1,10 +1,20 @@
 use crate::model::falidex_model::*;
+use futures::stream::TryStreamExt;
+use mongodb::{Collection, Database, bson::doc};
 use std::fs;
 use std::io::Read;
+pub async fn get_circulaires(db: &Database) -> Result<Vec<Circulaire>, String> {
+    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
+    let circulaires: Vec<Circulaire> = col
+        .find(doc! {})
+        .await
+        .map_err(|e| e.to_string())?
+        .try_collect()
+        .await
+        .map_err(|e| e.to_string())?;
+    /*let data = read_file("src/mock/circulaires.json".to_string()).map_err(|e| e.to_string())?;
+    let circulaires: Vec<Circulaire> = serde_json::from_str(&data).map_err(|e| e.to_string())?;*/
 
-pub async fn get_circulaires() -> Result<Vec<Circulaire>, String> {
-    let data = read_file("src/mock/circulaires.json".to_string()).map_err(|e| e.to_string())?;
-    let circulaires: Vec<Circulaire> = serde_json::from_str(&data).map_err(|e| e.to_string())?;
     Ok(circulaires)
 }
 

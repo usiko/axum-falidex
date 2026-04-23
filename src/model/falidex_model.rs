@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct Circulaire {
     matiere: String,
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
 }
 
