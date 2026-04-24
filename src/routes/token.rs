@@ -10,7 +10,7 @@ pub async fn verify_hash(
     State(state): State<AppState>,
     Json(payload): Json<TokenAuth>,
 ) -> Result<Json<TokenAuthResponse>, (StatusCode, Json<ErrorResult>)> {
-    if !verify_temp_token(&payload.role, payload.timestamp, &payload.hash) {
+    if verify_temp_token(&payload.role, payload.timestamp, &payload.hash) {
         let token = state.token_store.generate_and_store();
         Ok(Json(TokenAuthResponse { token }))
     } else {

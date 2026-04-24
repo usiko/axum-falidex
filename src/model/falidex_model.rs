@@ -4,11 +4,13 @@ use serde::{Deserialize, Serialize};
 pub struct Circulaire {
     matiere: String,
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Color {
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
     name: String,
     #[serde(rename = "colorData")]
@@ -18,36 +20,42 @@ pub struct Color {
 #[derive(Deserialize, Serialize)]
 pub struct Filiere {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Placement {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Position {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Signification {
     content: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct SymboleAccessoire {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct SymboleSens {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
 }
 
@@ -60,6 +68,7 @@ pub struct Img {
 #[derive(Deserialize, Serialize)]
 pub struct Symbole {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     imgs: Option<Vec<Img>>,
@@ -67,6 +76,7 @@ pub struct Symbole {
 
 #[derive(Deserialize, Serialize)]
 pub struct CirculaireColor {
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
     #[serde(rename = "circulaireId")]
     circulaire_id: String,
@@ -77,6 +87,7 @@ pub struct CirculaireColor {
 #[derive(Deserialize, Serialize)]
 pub struct Link {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
     #[serde(rename = "lastUpdate")]
     last_update: String,
@@ -85,6 +96,7 @@ pub struct Link {
 #[derive(Deserialize, Serialize)]
 pub struct LinkDetail {
     name: String,
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
     id: String,
     relations: Vec<LinkItem>,
     specificites: Vec<Specificite>,

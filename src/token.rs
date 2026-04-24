@@ -28,16 +28,31 @@ pub fn verify_temp_token(role: &str, timestamp: i64, hash_received: &str) -> boo
     let now = Utc::now().timestamp();
 
     // Vérifier expiration (60 secondes)
-    if (now - timestamp).abs() > 60 {
+    println!("{}-{}={}", now, timestamp, now - timestamp);
+    if timestamp > now || now - timestamp > 60 {
+        println!("token not given because timestamp");
         return false;
     }
-
+    println!("token timestamp ok");
     // Vérifier le hash
     let expected_hash = hash_token(role, timestamp);
+    println!("hash from {} {} result {}", role, timestamp, expected_hash);
     expected_hash == hash_received
 }
 fn get_token_hash_key() -> String {
     std::env::var("TOKEN_HASH_KEY").unwrap_or("default_dev_token_hash_please_change".to_string())
+}
+fn derivate_token(token: &str) -> String {
+    let secret = get_derivated_token_hash_key();
+    let data = format!("{}|{}", token, secret);
+    let mut hasher = Sha256::new();
+    hasher.update(data.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+fn get_derivated_token_hash_key() -> String {
+    std::env::var("DERIVATE_TOKEN_HASH_KEY")
+        .unwrap_or("default_dev_token_hash_please_change".to_string())
 }
 
 // ============================================================
@@ -58,14 +73,16 @@ impl TokenStore {
     }
 
     /// Génère un nouveau token UUID valide 24h et le stocke
+    /// le uuid est donné au front mais ce n'est pas lui qui sert de token
+    /// le token valid est une derivation du uuid, un hash token+key
     pub fn generate_and_store(&self) -> String {
         let token = uuid::Uuid::new_v4().to_string();
+        let derivated_token = derivate_token(&token);
         let expiration = Utc::now().timestamp() + 86400; // +24h
-
         self.tokens
             .lock()
             .unwrap()
-            .insert(token.clone(), expiration);
+            .insert(derivated_token, expiration);
         token
     }
 
