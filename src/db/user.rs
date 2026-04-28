@@ -3,6 +3,7 @@ use mongodb::{
     bson::{doc, oid::ObjectId},
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use crate::db::model::{User, UserAuth};
 
@@ -22,7 +23,9 @@ pub async fn get_by_id(db: &Database, id: String) -> std::result::Result<User, S
         None => Err("not found".to_string()),
     }
 }
-pub async fn auth(db: &Database, name: String, hash: String) -> std::result::Result<User, String> {
+pub async fn auth(db: &Database, name: String, pwd: String) -> std::result::Result<User, String> {
+    let hash = hash_pwd(&pwd);
+    println!("hash {} {}", pwd, hash);
     let col = get_collection(db);
     let result = col
         .find_one(doc! { "username": name, "pwd_hash": hash })
@@ -33,6 +36,11 @@ pub async fn auth(db: &Database, name: String, hash: String) -> std::result::Res
         Some(user) => Ok(user),
         None => Err("not found".to_string()),
     }
+}
+fn hash_pwd(pwd: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(pwd.as_bytes());
+    hex::encode(hasher.finalize())
 }
 fn get_collection(db: &Database) -> Collection<User> {
     db.collection("users")
