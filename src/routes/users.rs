@@ -1,5 +1,5 @@
 use crate::db::model::{AuthRequest, ErrorResult, User, UserAuth};
-use crate::state::AppState;
+use crate::{db::user, state::AppState};
 use axum::{
     Json,
     extract::{Path, State},
@@ -21,33 +21,30 @@ pub async fn auth(
     State(state): State<AppState>,
     Json(payload): Json<AuthRequest>,
 ) -> Result<Json<UserAuth>, (StatusCode, Json<ErrorResult>)> {
-    let result = state
-        .db
-        .auth_user(payload.user_name, payload.password)
+    let db = &state.db.db;
+    user::auth(db, payload.user_name, payload.password)
         .await
+        .map(|result| {
+            let id = result
+                .id
+                .map(|id: ObjectId| id.to_string())
+                .unwrap_or_default();
+            let token = generate_token(id.clone());
+            Json(UserAuth {
+                token,
+                id,
+                username: result.username,
+            })
+        })
         .map_err(|e| {
-            let status = if e == "not found" {
-                StatusCode::UNAUTHORIZED
-            } else {
-                StatusCode::INTERNAL_SERVER_ERROR
-            };
-            let error = ErrorResult {
-                error: e,
-                message: "unable to authenticate".to_string(),
-            };
-            (status, Json(error))
-        })?;
-    let id = result
-        .id
-        .map(|id: ObjectId| id.to_string())
-        .unwrap_or_default();
-    let token = generate_token(id.clone());
-    println!("{}", token);
-    Ok(Json(UserAuth {
-        token,
-        id,
-        username: result.username,
-    }))
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(ErrorResult {
+                    error: "Unauthorized".to_string(),
+                    message: e.to_string(),
+                }),
+            )
+        })
 }
 
 pub async fn get_user(
@@ -55,7 +52,7 @@ pub async fn get_user(
     Path(user_id): Path<String>,
 ) -> Result<Json<User>, (StatusCode, String)> {
     print!("req user with id {}", user_id);
-    let result = state.db.get_user(user_id).await.map_err(|e| {
+    let result = user::get_by_id(&state.db.db, user_id).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Failed to get user: {e}"),
@@ -68,7 +65,7 @@ pub async fn get_current_user(
     State(state): State<AppState>,
 ) -> Result<Json<User>, (StatusCode, String)> {
     let user_id = token.sub;
-    let result = state.db.get_user(user_id).await.map_err(|e| {
+    let result = user::get_by_id(&state.db.db, user_id).await.map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Failed to get user: {e}"),

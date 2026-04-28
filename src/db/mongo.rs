@@ -40,7 +40,7 @@ impl MongoDB {
         persistence::set(&self.db, key, value, user_id, override_existing).await
     }
 
-    pub async fn auth_user(
+    /*pub async fn auth_user(
         &self,
         user_name: String,
         hash_pwd: String,
@@ -51,5 +51,5 @@ impl MongoDB {
     pub async fn get_user(&self, user_id: String) -> std::result::Result<User, String> {
         let db = &self.db;
         user::get_by_id(db, user_id).await
-    }
+    }*/
 }
