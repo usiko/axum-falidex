@@ -95,13 +95,22 @@ pub struct Link {
 
 #[derive(Deserialize, Serialize)]
 pub struct LinkDetail {
-    name: String,
+    pub name: String,
     #[serde(rename(deserialize = "_id", serialize = "id"))]
-    id: String,
-    relations: Vec<LinkItem>,
-    specificites: Vec<Specificite>,
+    pub id: String,
+    pub relations: Vec<LinkItem>,
+    pub specificites: Vec<Specificite>,
     #[serde(rename = "lastUpdate")]
-    last_update: String,
+    pub last_update: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateLinkDetail {
+    pub name: String,
+    pub relations: Vec<LinkItem>,
+    pub specificites: Vec<Specificite>,
+    #[serde(rename = "lastUpdate")]
+    pub last_update: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -114,6 +123,11 @@ pub struct Specificite {
 
 #[derive(Deserialize, Serialize)]
 pub struct LinkItem {
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub id: Option<String>,
     #[serde(rename = "placementId")]
     placement_id: String,
     #[serde(rename = "positionId", skip_serializing_if = "Option::is_none")]

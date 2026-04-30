@@ -166,6 +166,72 @@ pub async fn get_link_item(db: &Database, item: String) -> Result<LinkDetail, St
     result.ok_or("Link not found".to_string())
 }
 
+pub async fn create_link_item(db: &Database, data: CreateLinkDetail) -> Result<String, String> {
+    let col: Collection<CreateLinkDetail> = db.collection::<CreateLinkDetail>("links");
+    col.insert_one(data)
+        .await
+        .map(|_| "Link créé avec succès".to_string())
+        .map_err(|e| format!("Erreur lors de la création du link: {}", e))
+}
+pub async fn update_link_item(db: &Database, data: LinkDetail) -> Result<String, String> {
+    let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
+    let result = col
+        .replace_one(doc! { "_id": data.id.clone()}, data)
+        .await
+        .map_err(|e| format!("Erreur lors de la mise à jour du link: {}", e))?;
+
+    if result.modified_count > 0 {
+        Ok("Link mis à jour avec succès".to_string())
+    } else {
+        Err("Aucun link trouvé avec cet identifiant".to_string())
+    }
+}
+pub async fn update_link_item_relation(
+    db: &Database,
+    link_id: String,
+    data: LinkItem,
+) -> Result<String, String> {
+    // Récupérer le LinkDetail existant
+    let mut item = get_link_item(db, link_id.clone()).await?;
+
+    // Trouver et remplacer le LinkItem dans les relations par son id
+    if let Some(relation_id) = &data.id {
+        if let Some(pos) = item
+            .relations
+            .iter()
+            .position(|r| r.id.as_ref() == Some(relation_id))
+        {
+            item.relations[pos] = data;
+        } else {
+            return Err("Aucune relation trouvée avec cet identifiant".to_string());
+        }
+    } else {
+        return Err("L'identifiant de la relation est requis pour la mise à jour".to_string());
+    }
+
+    // Mettre à jour le LinkDetail complet
+    update_link_item(db, item).await
+}
+pub async fn create_link_item_relation(
+    db: &Database,
+    link_id: String,
+    mut data: LinkItem,
+) -> Result<String, String> {
+    // Récupérer le LinkDetail existant
+    let mut item = get_link_item(db, link_id.clone()).await?;
+
+    // Générer un id si non fourni
+    if data.id.is_none() {
+        data.id = Some(mongodb::bson::oid::ObjectId::new().to_hex());
+    }
+
+    // Ajouter le nouveau LinkItem aux relations
+    item.relations.push(data);
+
+    // Mettre à jour le LinkDetail complet
+    update_link_item(db, item).await
+}
+
 fn read_file(path: String) -> Result<String, Box<dyn std::error::Error>> {
     let mut file =
         fs::File::open(&path).map_err(|e| format!("Erreur ouverture fichier '{}': {}", path, e))?;
