@@ -189,7 +189,7 @@ pub async fn update_link_item(db: &Database, data: LinkDetail) -> Result<String,
 pub async fn update_link_item_relation(
     db: &Database,
     link_id: String,
-    data: LinkItem,
+    mut data: LinkItem,
 ) -> Result<String, String> {
     // Récupérer le LinkDetail existant
     let mut item = get_link_item(db, link_id.clone()).await?;
@@ -201,6 +201,13 @@ pub async fn update_link_item_relation(
             .iter()
             .position(|r| r.id.as_ref() == Some(relation_id))
         {
+            // Conserver la date de création originale
+            let created_at = item.relations[pos].created_at.clone();
+            data.created_at = created_at;
+
+            // Mettre à jour la date de modification
+            data.updated_at = Some(chrono::Utc::now().to_rfc3339());
+
             item.relations[pos] = data;
         } else {
             return Err("Aucune relation trouvée avec cet identifiant".to_string());
@@ -225,11 +232,57 @@ pub async fn create_link_item_relation(
         data.id = Some(mongodb::bson::oid::ObjectId::new().to_hex());
     }
 
+    // Définir les dates de création et modification
+    let now = chrono::Utc::now().to_rfc3339();
+    data.created_at = Some(now.clone());
+    data.updated_at = Some(now);
+
     // Ajouter le nouveau LinkItem aux relations
     item.relations.push(data);
 
     // Mettre à jour le LinkDetail complet
     update_link_item(db, item).await
+}
+
+/*
+* fixing current data
+*/
+pub async fn fix_link_relation_id(db: &Database) -> Result<String, String> {
+    let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
+
+    // Récupérer tous les LinkDetail
+    let mut links: Vec<LinkDetail> = col
+        .find(doc! {})
+        .await
+        .map_err(|e| e.to_string())?
+        .try_collect()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut updated_count = 0;
+
+    // Parcourir chaque LinkDetail
+    for link in &mut links {
+        let mut has_changes = false;
+
+        // Parcourir chaque relation et générer un ID si absent
+        for relation in &mut link.relations {
+            if relation.id.is_none() {
+                relation.id = Some(mongodb::bson::oid::ObjectId::new().to_hex());
+                has_changes = true;
+            }
+        }
+
+        // Mettre à jour le document si des changements ont été effectués
+        if has_changes {
+            col.replace_one(doc! { "_id": &link.id }, link)
+                .await
+                .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
+            updated_count += 1;
+        }
+    }
+
+    Ok(format!("{} link(s) mis à jour avec succès", updated_count))
 }
 
 fn read_file(path: String) -> Result<String, Box<dyn std::error::Error>> {

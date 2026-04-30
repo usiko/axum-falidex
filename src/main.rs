@@ -6,6 +6,7 @@ mod routes;
 mod state;
 mod token;
 
+use crate::db::falidex::fix_link_relation_id;
 use crate::middleware::verify_token_middleware;
 use crate::routes::falidex;
 use crate::routes::{token::verify_hash, users::get_current_user};
@@ -29,6 +30,7 @@ async fn main() {
     show_dev_ex_token("visitor");
 
     let app_state = get_state().await;
+    fix_link_relation_id(&app_state.db.db).await;
     let jwt_decoder = app_state.jwt_decoder.clone();
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource

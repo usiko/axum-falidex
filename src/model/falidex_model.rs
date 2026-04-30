@@ -144,4 +144,8 @@ pub struct LinkItem {
     symbole_sens_id: Option<String>,
     #[serde(rename = "symboleAccessoryId", skip_serializing_if = "Option::is_none")]
     symbole_accessory_id: Option<String>,
+    #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt", skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
 }
