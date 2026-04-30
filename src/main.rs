@@ -42,11 +42,11 @@ async fn main() {
         .route("/token", post(verify_hash))
         .route(
             "/collection/link/{link_id}/update",
-            get(falidex::link::update_item_relation),
+            post(falidex::link::update_item_relation),
         )
         .route(
             "/collection/link/{link_id}/create",
-            get(falidex::link::create_item_relation),
+            post(falidex::link::create_item_relation),
         )
         .with_state(app_state.clone())
         .layer(cors.clone());
