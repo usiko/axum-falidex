@@ -18,7 +18,7 @@ use axum::http::{
 use axum::{
     Router,
     middleware::from_fn_with_state,
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
 };
 use axum_jwt::layer;
 use routes::persistence::{get_persistence, set_persistence};
@@ -37,7 +37,13 @@ async fn main() {
     let jwt_decoder = app_state.jwt_decoder.clone();
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
-        .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::OPTIONS])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
         .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
         // allow requests from any origin
         .allow_origin(Any);
@@ -80,16 +86,16 @@ async fn main() {
         .route("/persistence", get(get_persistence).post(set_persistence))
         .route("/user/", get(get_current_user))
         .route(
+            "/collection/link/{link_id}",
+            put(falidex::link::update_item).delete(falidex::link::delete_item),
+        )
+        .route(
             "/collection/link/{link_id}/update",
             post(falidex::link::update_item_relation),
         )
         .route(
             "/collection/link/{link_id}/create",
             post(falidex::link::create_item_relation),
-        )
-        .route(
-            "/collection/link/{link_id}",
-            delete(falidex::link::delete_item),
         )
         .route(
             "/collection/link/{link_id}/relation/{relation_id}",
