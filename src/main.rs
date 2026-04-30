@@ -40,14 +40,6 @@ async fn main() {
         .allow_origin(Any);
     let free = Router::new()
         .route("/token", post(verify_hash))
-        .route(
-            "/collection/link/{link_id}/update",
-            post(falidex::link::update_item_relation),
-        )
-        .route(
-            "/collection/link/{link_id}/create",
-            post(falidex::link::create_item_relation),
-        )
         .with_state(app_state.clone())
         .layer(cors.clone());
     let token = Router::new()
@@ -84,6 +76,14 @@ async fn main() {
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))
         .route("/user/", get(get_current_user))
+        .route(
+            "/collection/link/{link_id}/update",
+            post(falidex::link::update_item_relation),
+        )
+        .route(
+            "/collection/link/{link_id}/create",
+            post(falidex::link::create_item_relation),
+        )
         .layer(from_fn_with_state(
             app_state.clone(),
             verify_token_middleware,
