@@ -18,7 +18,7 @@ use axum::http::{
 use axum::{
     Router,
     middleware::from_fn_with_state,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use axum_jwt::layer;
 use routes::persistence::{get_persistence, set_persistence};
@@ -30,11 +30,14 @@ async fn main() {
     show_dev_ex_token("visitor");
 
     let app_state = get_state().await;
-    fix_link_relation_id(&app_state.db.db).await;
+    match fix_link_relation_id(&app_state.db.db).await {
+        Ok(msg) => println!("Fix relation IDs: {}", msg),
+        Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
+    }
     let jwt_decoder = app_state.jwt_decoder.clone();
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::OPTIONS])
         .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
         // allow requests from any origin
         .allow_origin(Any);
@@ -83,6 +86,14 @@ async fn main() {
         .route(
             "/collection/link/{link_id}/create",
             post(falidex::link::create_item_relation),
+        )
+        .route(
+            "/collection/link/{link_id}",
+            delete(falidex::link::delete_item),
+        )
+        .route(
+            "/collection/link/{link_id}/relation/{relation_id}",
+            delete(falidex::link::delete_item_relation),
         )
         .layer(from_fn_with_state(
             app_state.clone(),

@@ -8,8 +8,8 @@ use serde_json::json;
 
 use crate::{
     db::falidex::{
-        create_link_item, create_link_item_relation, get_link_item, get_links, update_link_item,
-        update_link_item_relation,
+        create_link_item, create_link_item_relation, delete_link_item, delete_link_item_relation,
+        get_link_item, get_links, update_link_item, update_link_item_relation,
     },
     model::falidex_model::{CreateLinkDetail, LinkDetail, LinkItem},
     state::AppState,
@@ -113,6 +113,51 @@ pub async fn create_item(
     match create_link_item(&state.db.db, payload).await {
         Ok(message) => (
             StatusCode::CREATED,
+            Json(json!({
+                "success": true,
+                "message": message
+            })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "success": false,
+                "error": e
+            })),
+        )
+            .into_response(),
+    }
+}
+
+pub async fn delete_item(State(state): State<AppState>, Path(link_id): Path<String>) -> Response {
+    match delete_link_item(&state.db.db, link_id).await {
+        Ok(message) => (
+            StatusCode::OK,
+            Json(json!({
+                "success": true,
+                "message": message
+            })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "success": false,
+                "error": e
+            })),
+        )
+            .into_response(),
+    }
+}
+
+pub async fn delete_item_relation(
+    State(state): State<AppState>,
+    Path((link_id, relation_id)): Path<(String, String)>,
+) -> Response {
+    match delete_link_item_relation(&state.db.db, link_id, relation_id).await {
+        Ok(message) => (
+            StatusCode::OK,
             Json(json!({
                 "success": true,
                 "message": message

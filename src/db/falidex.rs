@@ -244,6 +244,44 @@ pub async fn create_link_item_relation(
     update_link_item(db, item).await
 }
 
+pub async fn delete_link_item(db: &Database, link_id: String) -> Result<String, String> {
+    let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
+    let result = col
+        .delete_one(doc! { "_id": link_id })
+        .await
+        .map_err(|e| format!("Erreur lors de la suppression du link: {}", e))?;
+
+    if result.deleted_count > 0 {
+        Ok("Link supprimé avec succès".to_string())
+    } else {
+        Err("Aucun link trouvé avec cet identifiant".to_string())
+    }
+}
+
+pub async fn delete_link_item_relation(
+    db: &Database,
+    link_id: String,
+    relation_id: String,
+) -> Result<String, String> {
+    // Récupérer le LinkDetail existant
+    let mut item = get_link_item(db, link_id.clone()).await?;
+
+    // Trouver et supprimer le LinkItem dans les relations par son id
+    if let Some(pos) = item
+        .relations
+        .iter()
+        .position(|r| r.id.as_ref() == Some(&relation_id))
+    {
+        item.relations.remove(pos);
+    } else {
+        return Err("Aucune relation trouvée avec cet identifiant".to_string());
+    }
+
+    // Mettre à jour le LinkDetail complet
+    update_link_item(db, item).await?;
+    Ok("Relation supprimée avec succès".to_string())
+}
+
 /*
 * fixing current data
 */
