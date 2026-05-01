@@ -123,10 +123,7 @@ pub struct Specificite {
 
 #[derive(Deserialize, Serialize)]
 pub struct LinkItem {
-    #[serde(
-        rename(deserialize = "_id", serialize = "id"),
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(rename = "placementId")]
     placement_id: String,

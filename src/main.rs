@@ -86,8 +86,12 @@ async fn main() {
         .route("/persistence", get(get_persistence).post(set_persistence))
         .route("/user/", get(get_current_user))
         .route(
+            "/collection/link",
+            post(falidex::link::create_item).put(falidex::link::update_item),
+        )
+        .route(
             "/collection/link/{link_id}",
-            put(falidex::link::update_item).delete(falidex::link::delete_item),
+            delete(falidex::link::delete_item),
         )
         .route(
             "/collection/link/{link_id}/update",
@@ -98,7 +102,7 @@ async fn main() {
             post(falidex::link::create_item_relation),
         )
         .route(
-            "/collection/link/{link_id}/relation/{relation_id}",
+            "/collection/link/{link_id}/relation-item/{relation_id}",
             delete(falidex::link::delete_item_relation),
         )
         .layer(from_fn_with_state(
