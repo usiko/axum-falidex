@@ -194,6 +194,11 @@ pub async fn update_link_item_relation(
     // Récupérer le LinkDetail existant
     let mut item = get_link_item(db, link_id.clone()).await?;
 
+    // Vérifier si le link est éditable
+    if item.editable == Some(false) {
+        return Err("Ce link n'est pas éditable".to_string());
+    }
+
     // Trouver et remplacer le LinkItem dans les relations par son id
     if let Some(relation_id) = &data.id {
         if let Some(pos) = item
@@ -226,6 +231,11 @@ pub async fn create_link_item_relation(
 ) -> Result<String, String> {
     // Récupérer le LinkDetail existant
     let mut item = get_link_item(db, link_id.clone()).await?;
+
+    // Vérifier si le link est éditable
+    if item.editable == Some(false) {
+        return Err("Ce link n'est pas éditable".to_string());
+    }
 
     // Générer un id si non fourni
     if data.id.is_none() {
@@ -265,6 +275,11 @@ pub async fn delete_link_item_relation(
 ) -> Result<String, String> {
     // Récupérer le LinkDetail existant
     let mut item = get_link_item(db, link_id.clone()).await?;
+
+    // Vérifier si le link est éditable
+    if item.editable == Some(false) {
+        return Err("Ce link n'est pas éditable".to_string());
+    }
 
     // Trouver et supprimer le LinkItem dans les relations par son id
     if let Some(pos) = item
