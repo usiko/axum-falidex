@@ -7,7 +7,7 @@ mod state;
 mod token;
 
 use crate::db::falidex::fix_link_relation_id;
-use crate::middleware::verify_token_middleware;
+use crate::middleware::{verify_jwt_middleware, verify_token_middleware};
 use crate::routes::falidex;
 use crate::routes::{token::verify_hash, users::get_current_user};
 use crate::token::show_dev_ex_token;
@@ -20,7 +20,6 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
 };
-use axum_jwt::layer;
 use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
@@ -34,7 +33,6 @@ async fn main() {
         Ok(msg) => println!("Fix relation IDs: {}", msg),
         Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
     }
-    let jwt_decoder = app_state.jwt_decoder.clone();
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
         .allow_methods([
@@ -109,8 +107,8 @@ async fn main() {
             app_state.clone(),
             verify_token_middleware,
         ))
-        .with_state(app_state)
-        .layer(layer(jwt_decoder))
+        .with_state(app_state.clone())
+        .layer(from_fn_with_state(app_state, verify_jwt_middleware))
         .layer(cors);
     let app = free.merge(token).merge(protected);
     // run our app with hyper, listening on the PORT environment variable (for Heroku) or 3000 by default

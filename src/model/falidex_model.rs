@@ -100,25 +100,82 @@ pub struct LinkDetail {
     pub id: String,
     pub relations: Vec<LinkItem>,
     pub specificites: Vec<Specificite>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annee: Option<u64>,
     #[serde(rename = "lastUpdate")]
     pub last_update: String,
+    #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub editable: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub national: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ville: Option<String>,
+}
+#[derive(Deserialize, Serialize)]
+pub struct LinkDetailReq {
+    pub name: String,
+    pub id: String,
+    pub relations: Vec<LinkItem>,
+    pub specificites: Vec<Specificite>,
+    #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "lastUpdate", skip_serializing_if = "Option::is_none")]
+    pub last_update: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annee: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub editable: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub national: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ville: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct CreateLinkDetail {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     pub name: String,
     pub relations: Vec<LinkItem>,
     pub specificites: Vec<Specificite>,
-    #[serde(rename = "lastUpdate")]
-    pub last_update: String,
+    #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "lastUpdate", skip_serializing_if = "Option::is_none")]
+    pub last_update: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annee: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub editable: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub national: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ville: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Specificite {
-    name: String,
-    text: String,
-    id: String,
-    article: String,
+    pub name: String,
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub article: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
