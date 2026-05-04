@@ -202,4 +202,10 @@ pub struct LinkItem {
     pub created_at: Option<String>,
     #[serde(rename = "updatedAt", skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spe: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub absent: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blame: Option<bool>,
 }
