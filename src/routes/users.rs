@@ -76,9 +76,7 @@ pub async fn get_current_user(
 
 fn generate_token(user_id: String) -> String {
     println!("gen token from{}", user_id);
-    //let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET non défini");
-    let secret =
-        std::env::var("JWT_SECRET").unwrap_or("default_dev_secret_please_change".to_string());
+    let secret = crate::env::get_jwt_secret();
     let expiration = Utc::now()
         .checked_add_signed(Duration::hours(24)) // durée du token
         .unwrap()

@@ -1,5 +1,6 @@
 mod db;
 mod encrypt;
+mod env;
 mod middleware;
 mod model;
 mod routes;
@@ -33,18 +34,31 @@ async fn main() {
         Ok(msg) => println!("Fix relation IDs: {}", msg),
         Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
     }
-    let cors = CorsLayer::new()
-        // allow `GET` and `POST` when accessing the resource
-        .allow_methods([
-            Method::GET,
-            Method::POST,
-            Method::PUT,
-            Method::DELETE,
-            Method::OPTIONS,
-        ])
-        .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
-        // allow requests from any origin
-        .allow_origin(Any);
+
+    let allowed_origins = crate::env::get_allowed_origins();
+    let cors = if allowed_origins == "*" {
+        CorsLayer::new()
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
+            .allow_origin(Any)
+    } else {
+        CorsLayer::new()
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
+            .allow_origin(allowed_origins.parse::<axum::http::HeaderValue>().unwrap())
+    };
     let free = Router::new()
         .route("/token", post(verify_hash))
         .with_state(app_state.clone())
@@ -112,7 +126,7 @@ async fn main() {
         .layer(cors);
     let app = free.merge(token).merge(protected);
     // run our app with hyper, listening on the PORT environment variable (for Heroku) or 3000 by default
-    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let port = crate::env::get_port();
     let addr = format!("0.0.0.0:{}", port);
     println!("Server listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();

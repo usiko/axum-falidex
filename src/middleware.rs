@@ -62,8 +62,7 @@ pub async fn verify_jwt_middleware(
             // Vérifier le format "Bearer <token>"
             if let Some(token) = auth_value.strip_prefix("Bearer ") {
                 // Récupérer la clé secrète JWT
-                let secret = std::env::var("JWT_SECRET")
-                    .unwrap_or("default_dev_secret_please_change".to_string());
+                let secret = crate::env::get_jwt_secret();
                 let decoding_key = DecodingKey::from_secret(secret.as_bytes());
 
                 // Décoder le token JWT

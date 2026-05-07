@@ -9,7 +9,7 @@ use std::sync::Mutex;
 
 /// Crée un hash SHA256 à partir de: role|secret|timestamp
 fn hash_token(role: &str, timestamp: i64) -> String {
-    let secret = get_token_hash_key();
+    let secret = crate::env::get_token_hash_key();
     let data = format!("{}|{}|{}", role, secret, timestamp);
     let mut hasher = Sha256::new();
     hasher.update(data.as_bytes());
@@ -39,20 +39,13 @@ pub fn verify_temp_token(role: &str, timestamp: i64, hash_received: &str) -> boo
     println!("hash from {} {} result {}", role, timestamp, expected_hash);
     expected_hash == hash_received
 }
-fn get_token_hash_key() -> String {
-    std::env::var("TOKEN_HASH_KEY").unwrap_or("default_dev_token_hash_please_change".to_string())
-}
+
 fn derivate_token(token: &str) -> String {
-    let secret = get_derivated_token_hash_key();
+    let secret = crate::env::get_derivated_token_hash_key();
     let data = format!("{}|{}", token, secret);
     let mut hasher = Sha256::new();
     hasher.update(data.as_bytes());
     hex::encode(hasher.finalize())
-}
-
-fn get_derivated_token_hash_key() -> String {
-    std::env::var("DERIVATE_TOKEN_HASH_KEY")
-        .unwrap_or("default_dev_token_hash_please_change".to_string())
 }
 
 // ============================================================
