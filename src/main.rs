@@ -63,6 +63,7 @@ async fn main() {
         .route("/token", post(verify_hash))
         .with_state(app_state.clone())
         .layer(cors.clone());
+
     let token = Router::new()
         .route("/", get(root))
         .route("/auth", post(auth))
@@ -94,9 +95,8 @@ async fn main() {
         ))
         .with_state(app_state.clone())
         .layer(cors.clone());
-    let protected = Router::new()
-        .route("/persistence", get(get_persistence).post(set_persistence))
-        .route("/user/", get(get_current_user))
+
+    let edit_route_falidex_link = Router::new()
         .route(
             "/collection/link",
             post(falidex::link::create_item).put(falidex::link::update_item),
@@ -116,7 +116,12 @@ async fn main() {
         .route(
             "/collection/link/{link_id}/relation-item/{relation_id}",
             delete(falidex::link::delete_item_relation),
-        )
+        );
+
+    let protected = Router::new()
+        .route("/persistence", get(get_persistence).post(set_persistence))
+        .route("/user/", get(get_current_user))
+        .merge(edit_route_falidex_link)
         .layer(from_fn_with_state(
             app_state.clone(),
             verify_token_middleware,

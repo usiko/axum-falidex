@@ -13,3 +13,39 @@ pub async fn get(db: &Database) -> Result<Vec<Position>, String> {
         .map_err(|e| e.to_string())?;
     Ok(positions)
 }
+
+pub async fn create(db: &Database, data: Position) -> Result<String, String> {
+    let col: Collection<Position> = db.collection::<Position>("positions");
+    col.insert_one(data)
+        .await
+        .map(|_| "Position créée avec succès".to_string())
+        .map_err(|e| format!("Erreur lors de la création: {}", e))
+}
+
+pub async fn update(db: &Database, id: String, data: Position) -> Result<String, String> {
+    let col: Collection<Position> = db.collection::<Position>("positions");
+    let result = col
+        .replace_one(doc! { "_id": id }, data)
+        .await
+        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
+
+    if result.modified_count > 0 {
+        Ok("Position mise à jour avec succès".to_string())
+    } else {
+        Err("Aucune position trouvée avec cet identifiant".to_string())
+    }
+}
+
+pub async fn delete(db: &Database, id: String) -> Result<String, String> {
+    let col: Collection<Position> = db.collection::<Position>("positions");
+    let result = col
+        .delete_one(doc! { "_id": id })
+        .await
+        .map_err(|e| format!("Erreur lors de la suppression: {}", e))?;
+
+    if result.deleted_count > 0 {
+        Ok("Position supprimée avec succès".to_string())
+    } else {
+        Err("Aucune position trouvée avec cet identifiant".to_string())
+    }
+}
