@@ -1,4 +1,5 @@
-use crate::{db::falidex::filiere, model::falidex_model::Filiere, state::AppState};
+use crate::{db::falidex::filiere, state::AppState};
+use super::model::FiliereReq;
 use axum::{
     Json,
     extract::{Path, State},
@@ -18,8 +19,9 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<Filiere>) -> Response {
-    match filiere::create(&state.db.db, payload).await {
+pub async fn create(State(state): State<AppState>, Json(payload): Json<FiliereReq>) -> Response {
+    let filiere = payload.into();
+    match filiere::create(&state.db.db, filiere).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,9 +44,10 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<Filiere>)
 pub async fn update(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<Filiere>,
+    Json(payload): Json<FiliereReq>,
 ) -> Response {
-    match filiere::update(&state.db.db, id, payload).await {
+    let filiere = payload.into();
+    match filiere::update(&state.db.db, id, filiere).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({

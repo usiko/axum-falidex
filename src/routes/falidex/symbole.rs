@@ -1,4 +1,5 @@
-use crate::{db::falidex::symbole, model::falidex_model::Symbole, state::AppState};
+use crate::{db::falidex::symbole, state::AppState};
+use super::model::SymboleReq;
 use axum::{
     Json,
     extract::{Path, State},
@@ -18,8 +19,9 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<Symbole>) -> Response {
-    match symbole::create(&state.db.db, payload).await {
+pub async fn create(State(state): State<AppState>, Json(payload): Json<SymboleReq>) -> Response {
+    let symbole = payload.into();
+    match symbole::create(&state.db.db, symbole).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,9 +44,10 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<Symbole>)
 pub async fn update(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<Symbole>,
+    Json(payload): Json<SymboleReq>,
 ) -> Response {
-    match symbole::update(&state.db.db, id, payload).await {
+    let symbole = payload.into();
+    match symbole::update(&state.db.db, id, symbole).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({

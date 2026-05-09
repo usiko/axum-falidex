@@ -1,4 +1,5 @@
-use crate::{db::falidex::circulaire, model::falidex_model::Circulaire, state::AppState};
+use crate::{db::falidex::circulaire, state::AppState};
+use super::model::CirculaireReq;
 use axum::http::status::StatusCode;
 use axum::{
     Json,
@@ -18,8 +19,9 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<Circulaire>) -> Response {
-    match circulaire::create(&state.db.db, payload).await {
+pub async fn create(State(state): State<AppState>, Json(payload): Json<CirculaireReq>) -> Response {
+    let circulaire = payload.into();
+    match circulaire::create(&state.db.db, circulaire).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,9 +44,10 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<Circulair
 pub async fn update(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<Circulaire>,
+    Json(payload): Json<CirculaireReq>,
 ) -> Response {
-    match circulaire::update(&state.db.db, id, payload).await {
+    let circulaire = payload.into();
+    match circulaire::update(&state.db.db, id, circulaire).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({

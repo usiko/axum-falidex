@@ -1,4 +1,5 @@
-use crate::{db::falidex::placement, model::falidex_model::Placement, state::AppState};
+use crate::{db::falidex::placement, state::AppState};
+use super::model::PlacementReq;
 use axum::{
     Json,
     extract::{Path, State},
@@ -18,8 +19,9 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<Placement>) -> Response {
-    match placement::create(&state.db.db, payload).await {
+pub async fn create(State(state): State<AppState>, Json(payload): Json<PlacementReq>) -> Response {
+    let placement = payload.into();
+    match placement::create(&state.db.db, placement).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,9 +44,10 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<Placement
 pub async fn update(
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<Placement>,
+    Json(payload): Json<PlacementReq>,
 ) -> Response {
-    match placement::update(&state.db.db, id, payload).await {
+    let placement = payload.into();
+    match placement::update(&state.db.db, id, placement).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
