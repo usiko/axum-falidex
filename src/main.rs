@@ -70,23 +70,63 @@ async fn main() {
         .route("/user/id/{user_id}", get(get_user))
         .route("/collection/circulaires", get(falidex::circulaire::get))
         .route(
+            "/collection/circulaires/occurence/{id}",
+            get(falidex::circulaire::get_occurences),
+        )
+        .route(
             "/collection/circulaires-colors",
             get(falidex::circulaire_color::get),
         )
+        .route(
+            "/collection/circulaires-colors/occurence/{id}",
+            get(falidex::circulaire_color::get_occurences),
+        )
         .route("/collection/colors", get(falidex::color::get))
+        .route(
+            "/collection/colors/occurence/{id}",
+            get(falidex::color::get_occurences),
+        )
         .route("/collection/filieres", get(falidex::filiere::get))
+        .route(
+            "/collection/filieres/occurence/{id}",
+            get(falidex::filiere::get_occurences),
+        )
         .route("/collection/placements", get(falidex::placement::get))
+        .route(
+            "/collection/placements/occurence/{id}",
+            get(falidex::placement::get_occurences),
+        )
         .route("/collection/positions", get(falidex::position::get))
+        .route(
+            "/collection/positions/occurence/{id}",
+            get(falidex::position::get_occurences),
+        )
         .route(
             "/collection/significations",
             get(falidex::signification::get),
         )
+        .route(
+            "/collection/significations/occurence/{id}",
+            get(falidex::signification::get_occurences),
+        )
         .route("/collection/symboles", get(falidex::symbole::get))
+        .route(
+            "/collection/symboles/occurence/{id}",
+            get(falidex::symbole::get_occurences),
+        )
         .route(
             "/collection/symbole-accessoires",
             get(falidex::symbole_accessoire::get),
         )
+        .route(
+            "/collection/symbole-accessoires/occurence/{id}",
+            get(falidex::symbole_accessoire::get_occurences),
+        )
         .route("/collection/symboles-sens", get(falidex::symbole_sens::get))
+        .route(
+            "/collection/symboles-sens/occurence/{id}",
+            get(falidex::symbole_sens::get_occurences),
+        )
         .route("/collection/links", get(falidex::link::get))
         .route("/collection/link/{link_id}", get(falidex::link::get_item))
         .layer(from_fn_with_state(

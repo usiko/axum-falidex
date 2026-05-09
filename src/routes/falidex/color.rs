@@ -1,5 +1,5 @@
-use crate::{db::falidex::color, state::AppState};
 use super::model::ColorReq;
+use crate::{db::falidex::color, state::AppState};
 use axum::http::status::StatusCode;
 use axum::{
     Json,
@@ -83,6 +83,17 @@ pub async fn delete(State(state): State<AppState>, Path(id): Path<String>) -> Re
                 "success": false,
                 "error": e
             })),
+        )
+            .into_response(),
+    }
+}
+
+pub async fn get_occurences(State(state): State<AppState>, Path(id): Path<String>) -> Response {
+    match color::get_occurences(&state.db.db, id).await {
+        Ok(occurences) => Json(occurences).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to get occurences: {e}"),
         )
             .into_response(),
     }

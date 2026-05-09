@@ -87,3 +87,14 @@ pub async fn delete(State(state): State<AppState>, Path(id): Path<String>) -> Re
             .into_response(),
     }
 }
+
+pub async fn get_occurences(State(state): State<AppState>, Path(id): Path<String>) -> Response {
+    match position::get_occurences(&state.db.db, id).await {
+        Ok(occurences) => Json(occurences).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to get occurences: {e}"),
+        )
+            .into_response(),
+    }
+}
