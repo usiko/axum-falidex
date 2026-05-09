@@ -1,4 +1,4 @@
-use crate::model::falidex_model::{CirculaireColor, Color};
+use crate::model::falidex_model::{CirculaireColor, Color, OccurenceDetail};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
@@ -63,4 +63,11 @@ pub async fn delete(db: &Database, id: String) -> Result<String, String> {
     } else {
         Err("Aucune color trouvée avec cet identifiant".to_string())
     }
+}
+
+pub async fn get_occurences(_db: &Database, _id: String) -> Result<Vec<OccurenceDetail>, String> {
+    // Note: Color n'est pas directement référencé dans LinkItem
+    // Il faudrait chercher via circulaire -> circulaireColor -> color
+    // Pour l'instant, retourne une liste vide
+    Ok(Vec::new())
 }

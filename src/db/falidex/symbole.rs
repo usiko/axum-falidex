@@ -1,4 +1,4 @@
-use crate::model::falidex_model::Symbole;
+use crate::model::falidex_model::{LinkDetail, OccurenceDetail, Symbole};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Collection, Database};
 
@@ -48,4 +48,39 @@ pub async fn delete(db: &Database, id: String) -> Result<String, String> {
     } else {
         Err("Aucun symbole trouvé avec cet identifiant".to_string())
     }
+}
+
+pub async fn get_occurences(db: &Database, id: String) -> Result<Vec<OccurenceDetail>, String> {
+    let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
+
+    let all_relations: Vec<LinkDetail> = col
+        .find(doc! {})
+        .await
+        .map_err(|e| e.to_string())?
+        .try_collect()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut occurences = Vec::new();
+
+    for relation in all_relations {
+        let items_count = relation
+            .relations
+            .iter()
+            .filter(|item| {
+                item.symbole_id
+                    .as_ref()
+                    .map_or(false, |symbole_id| symbole_id == &id)
+            })
+            .count() as u64;
+
+        if items_count > 0 {
+            occurences.push(OccurenceDetail {
+                relation: relation.name,
+                items: items_count,
+            });
+        }
+    }
+
+    Ok(occurences)
 }

@@ -209,3 +209,9 @@ pub struct LinkItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blame: Option<bool>,
 }
+
+#[derive(Deserialize, Serialize)]
+pub struct OccurenceDetail {
+    pub relation: String,
+    pub items: u64,
+}
