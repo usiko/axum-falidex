@@ -118,10 +118,102 @@ async fn main() {
             delete(falidex::link::delete_item_relation),
         );
 
+    let edit_route_falidex_circulaire = Router::new()
+        .route("/collection/circulaires", post(falidex::circulaire::create))
+        .route(
+            "/collection/circulaires/{id}",
+            put(falidex::circulaire::update).delete(falidex::circulaire::delete),
+        );
+
+    let edit_route_falidex_color = Router::new()
+        .route("/collection/colors", post(falidex::color::create))
+        .route(
+            "/collection/colors/{id}",
+            put(falidex::color::update).delete(falidex::color::delete),
+        );
+
+    let edit_route_falidex_filiere = Router::new()
+        .route("/collection/filieres", post(falidex::filiere::create))
+        .route(
+            "/collection/filieres/{id}",
+            put(falidex::filiere::update).delete(falidex::filiere::delete),
+        );
+
+    let edit_route_falidex_placement = Router::new()
+        .route("/collection/placements", post(falidex::placement::create))
+        .route(
+            "/collection/placements/{id}",
+            put(falidex::placement::update).delete(falidex::placement::delete),
+        );
+
+    let edit_route_falidex_position = Router::new()
+        .route("/collection/positions", post(falidex::position::create))
+        .route(
+            "/collection/positions/{id}",
+            put(falidex::position::update).delete(falidex::position::delete),
+        );
+
+    let edit_route_falidex_signification = Router::new()
+        .route(
+            "/collection/significations",
+            post(falidex::signification::create),
+        )
+        .route(
+            "/collection/significations/{id}",
+            put(falidex::signification::update).delete(falidex::signification::delete),
+        );
+
+    let edit_route_falidex_symbole = Router::new()
+        .route("/collection/symboles", post(falidex::symbole::create))
+        .route(
+            "/collection/symboles/{id}",
+            put(falidex::symbole::update).delete(falidex::symbole::delete),
+        );
+
+    let edit_route_falidex_symbole_accessoire = Router::new()
+        .route(
+            "/collection/symbole-accessoires",
+            post(falidex::symbole_accessoire::create),
+        )
+        .route(
+            "/collection/symbole-accessoires/{id}",
+            put(falidex::symbole_accessoire::update).delete(falidex::symbole_accessoire::delete),
+        );
+
+    let edit_route_falidex_symbole_sens = Router::new()
+        .route(
+            "/collection/symboles-sens",
+            post(falidex::symbole_sens::create),
+        )
+        .route(
+            "/collection/symboles-sens/{id}",
+            put(falidex::symbole_sens::update).delete(falidex::symbole_sens::delete),
+        );
+
+    let edit_route_falidex_circulaire_color = Router::new()
+        .route(
+            "/collection/circulaires-colors",
+            post(falidex::circulaire_color::create),
+        )
+        .route(
+            "/collection/circulaires-colors/{id}",
+            put(falidex::circulaire_color::update).delete(falidex::circulaire_color::delete),
+        );
+
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))
         .route("/user/", get(get_current_user))
         .merge(edit_route_falidex_link)
+        .merge(edit_route_falidex_circulaire)
+        .merge(edit_route_falidex_color)
+        .merge(edit_route_falidex_filiere)
+        .merge(edit_route_falidex_placement)
+        .merge(edit_route_falidex_position)
+        .merge(edit_route_falidex_signification)
+        .merge(edit_route_falidex_symbole)
+        .merge(edit_route_falidex_symbole_accessoire)
+        .merge(edit_route_falidex_symbole_sens)
+        .merge(edit_route_falidex_circulaire_color)
         .layer(from_fn_with_state(
             app_state.clone(),
             verify_token_middleware,
