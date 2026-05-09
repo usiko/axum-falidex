@@ -36,6 +36,18 @@ pub async fn update(db: &Database, id: String, data: Circulaire) -> Result<Strin
 }
 
 pub async fn delete(db: &Database, id: String) -> Result<String, String> {
+    // Vérifier les occurrences dans les relations
+    let occurences = get_occurences(db, id.clone()).await?;
+
+    if !occurences.is_empty() {
+        let total_items: u64 = occurences.iter().map(|o| o.items).sum();
+        return Err(format!(
+            "Impossible de supprimer cette circulaire car elle est utilisée dans {} relation(s) ({} item(s) au total)",
+            occurences.len(),
+            total_items
+        ));
+    }
+
     // D'abord supprimer les circulaire_color associés
     let col_colors: Collection<CirculaireColor> =
         db.collection::<CirculaireColor>("circulaires-colors");

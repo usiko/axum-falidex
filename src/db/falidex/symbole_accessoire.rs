@@ -37,6 +37,18 @@ pub async fn update(db: &Database, id: String, data: SymboleAccessoire) -> Resul
 }
 
 pub async fn delete(db: &Database, id: String) -> Result<String, String> {
+    // Vérifier les occurrences dans les relations
+    let occurences = get_occurences(db, id.clone()).await?;
+    
+    if !occurences.is_empty() {
+        let total_items: u64 = occurences.iter().map(|o| o.items).sum();
+        return Err(format!(
+            "Impossible de supprimer ce symbole accessoire car il est utilisé dans {} relation(s) ({} item(s) au total)",
+            occurences.len(),
+            total_items
+        ));
+    }
+
     let col: Collection<SymboleAccessoire> = db.collection::<SymboleAccessoire>("symboles-accessories");
     let result = col
         .delete_one(doc! { "_id": id })
