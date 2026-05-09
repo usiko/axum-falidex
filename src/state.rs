@@ -28,7 +28,6 @@ pub async fn get_state() -> AppState {
 }
 
 fn get_jwt_decoder() -> Decoder {
-    let secret =
-        std::env::var("JWT_SECRET").unwrap_or("default_dev_secret_please_change".to_string());
+    let secret = crate::env::get_jwt_secret();
     Decoder::from_key(DecodingKey::from_secret(secret.as_bytes()))
 }
