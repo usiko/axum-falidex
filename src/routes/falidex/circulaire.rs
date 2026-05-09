@@ -1,4 +1,4 @@
-use crate::{db::falidex::get_circulaires, state::AppState};
+use crate::{db::falidex::circulaire, state::AppState};
 use axum::{
     Json,
     response::{IntoResponse, Response},
@@ -6,7 +6,7 @@ use axum::{
 use axum::{extract::State, http::status::StatusCode};
 
 pub async fn get(State(state): State<AppState>) -> Response {
-    match get_circulaires(&state.db.db).await {
+    match circulaire::get(&state.db.db).await {
         Ok(circulaires) => Json(circulaires).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,

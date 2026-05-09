@@ -1,4 +1,4 @@
-use crate::{db::falidex::get_symbole_accessoires, state::AppState};
+use crate::{db::falidex::symbole_accessoire, state::AppState};
 use axum::{
     Json,
     response::{IntoResponse, Response},
@@ -6,7 +6,7 @@ use axum::{
 use axum::{extract::State, http::status::StatusCode};
 
 pub async fn get(State(state): State<AppState>) -> Response {
-    match get_symbole_accessoires(&state.db.db).await {
+    match symbole_accessoire::get(&state.db.db).await {
         Ok(symbole_accessoires) => Json(symbole_accessoires).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,

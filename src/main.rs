@@ -7,7 +7,7 @@ mod routes;
 mod state;
 mod token;
 
-use crate::db::falidex::fix_link_relation_id;
+use crate::db::falidex::relations::fix_relation_id;
 use crate::middleware::{verify_jwt_middleware, verify_token_middleware};
 use crate::routes::falidex;
 use crate::routes::{token::verify_hash, users::get_current_user};
@@ -30,7 +30,7 @@ async fn main() {
     show_dev_ex_token("visitor");
 
     let app_state = get_state().await;
-    match fix_link_relation_id(&app_state.db.db).await {
+    match fix_relation_id(&app_state.db.db).await {
         Ok(msg) => println!("Fix relation IDs: {}", msg),
         Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
     }
