@@ -89,8 +89,22 @@ pub struct Link {
     pub name: String,
     #[serde(rename(deserialize = "_id", serialize = "id"))]
     pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annee: Option<u64>,
     #[serde(rename = "lastUpdate")]
     pub last_update: String,
+    #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub editable: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub national: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ville: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
