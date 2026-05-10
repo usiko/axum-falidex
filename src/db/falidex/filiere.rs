@@ -15,6 +15,7 @@ pub async fn get(db: &Database) -> Result<Vec<Filiere>, String> {
 }
 
 pub async fn create(db: &Database, data: Filiere) -> Result<String, String> {
+    let _ = crate::db::log::add(db, "system".to_string(), "[falidex][filiere][create]".to_string()).await;
     let col: Collection<Filiere> = db.collection::<Filiere>("filieres");
     col.insert_one(data)
         .await
@@ -23,6 +24,7 @@ pub async fn create(db: &Database, data: Filiere) -> Result<String, String> {
 }
 
 pub async fn update(db: &Database, id: String, data: Filiere) -> Result<String, String> {
+    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][filiere][update] id: {}", id)).await;
     let col: Collection<Filiere> = db.collection::<Filiere>("filieres");
     let result = col
         .replace_one(doc! { "_id": id }, data)
@@ -37,6 +39,7 @@ pub async fn update(db: &Database, id: String, data: Filiere) -> Result<String, 
 }
 
 pub async fn delete(db: &Database, id: String) -> Result<String, String> {
+    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][filiere][delete] id: {}", id)).await;
     // Vérifier les occurrences dans les relations
     let occurences = get_occurences(db, id.clone()).await?;
     

@@ -215,3 +215,13 @@ pub struct OccurenceDetail {
     pub relation: String,
     pub items: u64,
 }
+
+#[derive(Deserialize, Serialize)]
+pub struct Log {
+    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    pub id: String,
+    pub date: String,
+    #[serde(rename = "userId")]
+    pub user_id: String,
+    pub info: String,
+}
