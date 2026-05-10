@@ -7,6 +7,8 @@ use axum::{
 };
 use axum::http::status::StatusCode;
 use serde_json::json;
+use crate::routes::users::AppClaims;
+use axum_jwt::Claims;
 
 pub async fn get(State(state): State<AppState>) -> Response {
     match filiere::get(&state.db.db).await {
@@ -19,9 +21,14 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<FiliereReq>) -> Response {
+pub async fn create(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Json(payload): Json<FiliereReq>,
+) -> Response {
+    let user_id = token.sub;
     let filiere = payload.into();
-    match filiere::create(&state.db.db, filiere).await {
+    match filiere::create(&state.db.db, user_id, filiere).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,12 +49,14 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<FiliereRe
 }
 
 pub async fn update(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(payload): Json<FiliereReq>,
 ) -> Response {
+    let user_id = token.sub;
     let filiere = payload.into();
-    match filiere::update(&state.db.db, id, filiere).await {
+    match filiere::update(&state.db.db, user_id, id, filiere).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -67,8 +76,13 @@ pub async fn update(
     }
 }
 
-pub async fn delete(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    match filiere::delete(&state.db.db, id).await {
+pub async fn delete(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Response {
+    let user_id = token.sub;
+    match filiere::delete(&state.db.db, user_id, id).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({

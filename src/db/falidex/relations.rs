@@ -23,8 +23,8 @@ pub async fn get_item(db: &Database, item: String) -> Result<LinkDetail, String>
     result.ok_or("Link not found".to_string())
 }
 
-pub async fn create(db: &Database, data: CreateLinkDetail) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), "[falidex][relations][create]".to_string()).await;
+pub async fn create(db: &Database, user_id: String, data: CreateLinkDetail) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, "[falidex][relations][create]".to_string()).await;
     let col: Collection<CreateLinkDetail> = db.collection::<CreateLinkDetail>("links");
     col.insert_one(data)
         .await
@@ -32,8 +32,8 @@ pub async fn create(db: &Database, data: CreateLinkDetail) -> Result<String, Str
         .map_err(|e| format!("Erreur lors de la création du link: {}", e))
 }
 
-pub async fn update(db: &Database, data: LinkDetail) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][relations][update] id: {}", data.id)).await;
+pub async fn update(db: &Database, user_id: String, data: LinkDetail) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, format!("[falidex][relations][update] id: {}", data.id)).await;
     let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
     let result = col
         .replace_one(doc! { "_id": data.id.clone()}, data)
@@ -47,8 +47,8 @@ pub async fn update(db: &Database, data: LinkDetail) -> Result<String, String> {
     }
 }
 
-pub async fn delete(db: &Database, link_id: String) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][relations][delete] id: {}", link_id)).await;
+pub async fn delete(db: &Database, user_id: String, link_id: String) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, format!("[falidex][relations][delete] id: {}", link_id)).await;
     let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
     let result = col
         .delete_one(doc! { "_id": link_id })
@@ -64,10 +64,11 @@ pub async fn delete(db: &Database, link_id: String) -> Result<String, String> {
 
 pub async fn create_item_relation(
     db: &Database,
+    user_id: String,
     link_id: String,
     mut data: LinkItem,
 ) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][relations][create_item_relation] link_id: {}", link_id)).await;
+    let _ = crate::db::log::add(db, user_id.clone(), format!("[falidex][relations][create_item_relation] link_id: {}", link_id)).await;
     // Récupérer le LinkDetail existant
     let mut item = get_item(db, link_id.clone()).await?;
 
@@ -90,15 +91,16 @@ pub async fn create_item_relation(
     item.relations.push(data);
 
     // Mettre à jour le LinkDetail complet
-    update(db, item).await
+    update(db, user_id, item).await
 }
 
 pub async fn update_item_relation(
     db: &Database,
+    user_id: String,
     link_id: String,
     mut data: LinkItem,
 ) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][relations][update_item_relation] link_id: {}", link_id)).await;
+    let _ = crate::db::log::add(db, user_id.clone(), format!("[falidex][relations][update_item_relation] link_id: {}", link_id)).await;
     // Récupérer le LinkDetail existant
     let mut item = get_item(db, link_id.clone()).await?;
 
@@ -130,15 +132,16 @@ pub async fn update_item_relation(
     }
 
     // Mettre à jour le LinkDetail complet
-    update(db, item).await
+    update(db, user_id, item).await
 }
 
 pub async fn delete_item_relation(
     db: &Database,
+    user_id: String,
     link_id: String,
     relation_id: String,
 ) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][relations][delete_item_relation] link_id: {}, relation_id: {}", link_id, relation_id)).await;
+    let _ = crate::db::log::add(db, user_id.clone(), format!("[falidex][relations][delete_item_relation] link_id: {}, relation_id: {}", link_id, relation_id)).await;
     // Récupérer le LinkDetail existant
     let mut item = get_item(db, link_id.clone()).await?;
 
@@ -159,7 +162,7 @@ pub async fn delete_item_relation(
     }
 
     // Mettre à jour le LinkDetail complet
-    update(db, item).await?;
+    update(db, user_id, item).await?;
     Ok("Relation supprimée avec succès".to_string())
 }
 

@@ -14,10 +14,10 @@ pub async fn get(db: &Database) -> Result<Vec<SymboleSens>, String> {
     Ok(symboles_sens)
 }
 
-pub async fn create(db: &Database, data: SymboleSens) -> Result<String, String> {
+pub async fn create(db: &Database, user_id: String, data: SymboleSens) -> Result<String, String> {
     let _ = crate::db::log::add(
         db,
-        "system".to_string(),
+        user_id,
         "[falidex][symbole_sens][create]".to_string(),
     )
     .await;
@@ -28,10 +28,10 @@ pub async fn create(db: &Database, data: SymboleSens) -> Result<String, String> 
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, id: String, data: SymboleSens) -> Result<String, String> {
+pub async fn update(db: &Database, user_id: String, id: String, data: SymboleSens) -> Result<String, String> {
     let _ = crate::db::log::add(
         db,
-        "system".to_string(),
+        user_id,
         format!("[falidex][symbole_sens][update] id: {}", id),
     )
     .await;
@@ -48,10 +48,10 @@ pub async fn update(db: &Database, id: String, data: SymboleSens) -> Result<Stri
     }
 }
 
-pub async fn delete(db: &Database, id: String) -> Result<String, String> {
+pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String, String> {
     let _ = crate::db::log::add(
         db,
-        "system".to_string(),
+        user_id,
         format!("[falidex][symbole_sens][delete] id: {}", id),
     )
     .await;

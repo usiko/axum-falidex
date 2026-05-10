@@ -7,6 +7,8 @@ use axum::{
 };
 use axum::http::status::StatusCode;
 use serde_json::json;
+use crate::routes::users::AppClaims;
+use axum_jwt::Claims;
 
 pub async fn get(State(state): State<AppState>) -> Response {
     match circulaire_color::get(&state.db.db).await {
@@ -19,9 +21,14 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<CirculaireColorReq>) -> Response {
+pub async fn create(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Json(payload): Json<CirculaireColorReq>,
+) -> Response {
+    let user_id = token.sub;
     let circulaire_color = payload.into();
-    match circulaire_color::create(&state.db.db, circulaire_color).await {
+    match circulaire_color::create(&state.db.db, user_id, circulaire_color).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,12 +49,14 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<Circulair
 }
 
 pub async fn update(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(payload): Json<CirculaireColorReq>,
 ) -> Response {
+    let user_id = token.sub;
     let circulaire_color = payload.into();
-    match circulaire_color::update(&state.db.db, id, circulaire_color).await {
+    match circulaire_color::update(&state.db.db, user_id, id, circulaire_color).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -67,8 +76,13 @@ pub async fn update(
     }
 }
 
-pub async fn delete(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    match circulaire_color::delete(&state.db.db, id).await {
+pub async fn delete(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Response {
+    let user_id = token.sub;
+    match circulaire_color::delete(&state.db.db, user_id, id).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({

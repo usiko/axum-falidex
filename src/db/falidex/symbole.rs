@@ -14,8 +14,8 @@ pub async fn get(db: &Database) -> Result<Vec<Symbole>, String> {
     Ok(symboles)
 }
 
-pub async fn create(db: &Database, data: Symbole) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), "[falidex][symbole][create]".to_string()).await;
+pub async fn create(db: &Database, user_id: String, data: Symbole) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, "[falidex][symbole][create]".to_string()).await;
     let col: Collection<Symbole> = db.collection::<Symbole>("symboles");
     col.insert_one(data)
         .await
@@ -23,8 +23,8 @@ pub async fn create(db: &Database, data: Symbole) -> Result<String, String> {
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, id: String, data: Symbole) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][symbole][update] id: {}", id)).await;
+pub async fn update(db: &Database, user_id: String, id: String, data: Symbole) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole][update] id: {}", id)).await;
     let col: Collection<Symbole> = db.collection::<Symbole>("symboles");
     let result = col
         .replace_one(doc! { "_id": id }, data)
@@ -38,8 +38,8 @@ pub async fn update(db: &Database, id: String, data: Symbole) -> Result<String, 
     }
 }
 
-pub async fn delete(db: &Database, id: String) -> Result<String, String> {
-    let _ = crate::db::log::add(db, "system".to_string(), format!("[falidex][symbole][delete] id: {}", id)).await;
+pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole][delete] id: {}", id)).await;
     // Vérifier les occurrences dans les relations
     let occurences = get_occurences(db, id.clone()).await?;
     

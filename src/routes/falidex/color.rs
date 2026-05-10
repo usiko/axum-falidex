@@ -1,4 +1,5 @@
 use super::model::ColorReq;
+use crate::routes::users::AppClaims;
 use crate::{db::falidex::color, state::AppState};
 use axum::http::status::StatusCode;
 use axum::{
@@ -6,6 +7,7 @@ use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
 };
+use axum_jwt::Claims;
 use serde_json::json;
 
 pub async fn get(State(state): State<AppState>) -> Response {
@@ -19,9 +21,14 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<ColorReq>) -> Response {
+pub async fn create(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Json(payload): Json<ColorReq>,
+) -> Response {
+    let user_id = token.sub;
     let color = payload.into();
-    match color::create(&state.db.db, color).await {
+    match color::create(&state.db.db, user_id, color).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,12 +49,14 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<ColorReq>
 }
 
 pub async fn update(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(payload): Json<ColorReq>,
 ) -> Response {
+    let user_id = token.sub;
     let color = payload.into();
-    match color::update(&state.db.db, id, color).await {
+    match color::update(&state.db.db, user_id, id, color).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -67,8 +76,13 @@ pub async fn update(
     }
 }
 
-pub async fn delete(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    match color::delete(&state.db.db, id).await {
+pub async fn delete(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Response {
+    let user_id = token.sub;
+    match color::delete(&state.db.db, user_id, id).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
