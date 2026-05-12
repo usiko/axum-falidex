@@ -2,6 +2,7 @@ use mongodb::{Client, Collection, Database, bson::oid::ObjectId};
 
 use crate::db::model::User;
 use crate::db::model::UserAuth;
+use crate::env::get_bdd;
 
 use super::persistence;
 use super::user;
@@ -17,7 +18,7 @@ impl MongoDB {
         let uri = "mongodb+srv://quentinusiko_db_user:58sErWBbkymGdUHb@cluster0.1vbyumm.mongodb.net/?appName=Cluster0";
         // Create a new client and connect to the server
         let client = Client::with_uri_str(uri).await?;
-        let db = client.database("test-falidex");
+        let db = client.database(&get_bdd());
 
         Ok(Self { client, db })
     }
