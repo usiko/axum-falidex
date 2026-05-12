@@ -1,9 +1,9 @@
-use crate::model::falidex_model::{CirculaireColor, LinkDetail, OccurenceDetail};
+use crate::model::falidex_model::{CirculaireColor, CreateCirculaireColor, LinkDetail, OccurenceDetail};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<CirculaireColor>, String> {
-    let col: Collection<CirculaireColor> = get_col(db);
+    let col: Collection<CirculaireColor> = db.collection::<CirculaireColor>("circulaires-colors");
     let circulaires_colors: Vec<CirculaireColor> = col
         .find(doc! {})
         .await
@@ -14,8 +14,8 @@ pub async fn get(db: &Database) -> Result<Vec<CirculaireColor>, String> {
     Ok(circulaires_colors)
 }
 
-pub async fn create(db: &Database, data: CirculaireColor) -> Result<String, String> {
-    let col: Collection<CirculaireColor> = get_col(db);
+pub async fn create(db: &Database, data: CreateCirculaireColor) -> Result<String, String> {
+    let col: Collection<CreateCirculaireColor> = db.collection::<CreateCirculaireColor>("circulaires-colors");
     col.insert_one(data)
         .await
         .map(|_| "CirculaireColor créée avec succès".to_string())
@@ -23,7 +23,7 @@ pub async fn create(db: &Database, data: CirculaireColor) -> Result<String, Stri
 }
 
 pub async fn update(db: &Database, id: String, data: CirculaireColor) -> Result<String, String> {
-    let col: Collection<CirculaireColor> = get_col(db);
+    let col: Collection<CirculaireColor> = db.collection::<CirculaireColor>("circulaires-colors");
     let result = col
         .replace_one(doc! { "_id": id }, data)
         .await
@@ -49,7 +49,7 @@ pub async fn delete(db: &Database, id: String) -> Result<String, String> {
         ));
     }
 
-    let col: Collection<CirculaireColor> = get_col(db);
+    let col: Collection<CirculaireColor> = db.collection::<CirculaireColor>("circulaires-colors");
     let result = col
         .delete_one(doc! { "_id": id })
         .await
@@ -60,10 +60,6 @@ pub async fn delete(db: &Database, id: String) -> Result<String, String> {
     } else {
         Err("Aucune circulaire color trouvée avec cet identifiant".to_string())
     }
-}
-
-fn get_col(db: &Database) -> Collection<CirculaireColor> {
-    db.collection::<CirculaireColor>("circulaires-colors")
 }
 
 pub async fn get_occurences(

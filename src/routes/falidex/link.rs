@@ -3,9 +3,9 @@ use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
 };
-use mongodb::bson::oid::ObjectId;
 use reqwest::StatusCode;
 use serde_json::json;
+use uuid::Uuid;
 
 use crate::{
     db::falidex::relations,
@@ -126,7 +126,7 @@ pub async fn create_item(
 ) -> Response {
     // Générer un _id string si absent
     if payload.id.is_none() {
-        payload.id = Some(ObjectId::new().to_hex());
+        payload.id = Some(Uuid::new_v4().to_string());
     }
 
     // Définir les dates de création et modification

@@ -1,4 +1,4 @@
-use crate::model::falidex_model::{Filiere, LinkDetail, OccurenceDetail};
+use crate::model::falidex_model::{CreateFiliere, Filiere, LinkDetail, OccurenceDetail};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
@@ -14,8 +14,8 @@ pub async fn get(db: &Database) -> Result<Vec<Filiere>, String> {
     Ok(filieres)
 }
 
-pub async fn create(db: &Database, data: Filiere) -> Result<String, String> {
-    let col: Collection<Filiere> = db.collection::<Filiere>("filieres");
+pub async fn create(db: &Database, data: CreateFiliere) -> Result<String, String> {
+    let col: Collection<CreateFiliere> = db.collection::<CreateFiliere>("filieres");
     col.insert_one(data)
         .await
         .map(|_| "Filiere créée avec succès".to_string())

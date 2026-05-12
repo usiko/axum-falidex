@@ -1,4 +1,4 @@
-use crate::model::falidex_model::{LinkDetail, OccurenceDetail, Position};
+use crate::model::falidex_model::{CreatePosition, LinkDetail, OccurenceDetail, Position};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Collection, Database};
 
@@ -14,8 +14,8 @@ pub async fn get(db: &Database) -> Result<Vec<Position>, String> {
     Ok(positions)
 }
 
-pub async fn create(db: &Database, data: Position) -> Result<String, String> {
-    let col: Collection<Position> = db.collection::<Position>("positions");
+pub async fn create(db: &Database, data: CreatePosition) -> Result<String, String> {
+    let col: Collection<CreatePosition> = db.collection::<CreatePosition>("positions");
     col.insert_one(data)
         .await
         .map(|_| "Position créée avec succès".to_string())

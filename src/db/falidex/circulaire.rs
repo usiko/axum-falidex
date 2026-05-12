@@ -1,9 +1,9 @@
-use crate::model::falidex_model::{Circulaire, CirculaireColor, LinkDetail, OccurenceDetail};
+use crate::model::falidex_model::{Circulaire, CirculaireColor, CreateCirculaire, LinkDetail, OccurenceDetail};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<Circulaire>, String> {
-    let col: Collection<Circulaire> = get_col(db);
+    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
     let circulaires: Vec<Circulaire> = col
         .find(doc! {})
         .await
@@ -13,8 +13,8 @@ pub async fn get(db: &Database) -> Result<Vec<Circulaire>, String> {
         .map_err(|e| e.to_string())?;
     Ok(circulaires)
 }
-pub async fn create(db: &Database, data: Circulaire) -> Result<String, String> {
-    let col: Collection<Circulaire> = get_col(db);
+pub async fn create(db: &Database, data: CreateCirculaire) -> Result<String, String> {
+    let col: Collection<CreateCirculaire> = db.collection::<CreateCirculaire>("circulaires");
     col.insert_one(data)
         .await
         .map(|_| "Circulaire créée avec succès".to_string())
@@ -22,7 +22,7 @@ pub async fn create(db: &Database, data: Circulaire) -> Result<String, String> {
 }
 
 pub async fn update(db: &Database, id: String, data: Circulaire) -> Result<String, String> {
-    let col: Collection<Circulaire> = get_col(db);
+    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
     let result = col
         .replace_one(doc! { "_id": id }, data)
         .await
@@ -62,7 +62,7 @@ pub async fn delete(db: &Database, id: String) -> Result<String, String> {
         })?;
 
     // Ensuite supprimer la circulaire
-    let col: Collection<Circulaire> = get_col(db);
+    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
     let result = col
         .delete_one(doc! { "_id": id })
         .await
@@ -111,8 +111,4 @@ pub async fn get_occurences(db: &Database, id: String) -> Result<Vec<OccurenceDe
     }
 
     Ok(occurences)
-}
-
-fn get_col(db: &Database) -> Collection<Circulaire> {
-    db.collection::<Circulaire>("circulaires")
 }

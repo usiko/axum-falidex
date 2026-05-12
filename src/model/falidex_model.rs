@@ -9,8 +9,25 @@ pub struct Circulaire {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct CreateCirculaire {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub matiere: String,
+    pub name: String,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Color {
     #[serde(rename(deserialize = "_id", serialize = "id"))]
+    pub id: String,
+    pub name: String,
+    #[serde(rename = "colorData")]
+    pub color_data: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateColor {
+    #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
     #[serde(rename = "colorData")]
@@ -25,10 +42,24 @@ pub struct Filiere {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct CreateFiliere {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Placement {
     pub name: String,
     #[serde(rename(deserialize = "_id", serialize = "id"))]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreatePlacement {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -39,10 +70,24 @@ pub struct Position {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct CreatePosition {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Signification {
     pub content: String,
     #[serde(rename(deserialize = "_id", serialize = "id"))]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateSignification {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub content: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -53,10 +98,24 @@ pub struct SymboleAccessoire {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct CreateSymboleAccessoire {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct SymboleSens {
     pub name: String,
     #[serde(rename(deserialize = "_id", serialize = "id"))]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateSymboleSens {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -75,8 +134,27 @@ pub struct Symbole {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct CreateSymbole {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imgs: Option<Vec<Img>>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct CirculaireColor {
     #[serde(rename(deserialize = "_id", serialize = "id"))]
+    pub id: String,
+    #[serde(rename = "circulaireId")]
+    pub circulaire_id: String,
+    #[serde(rename = "colorIds")]
+    pub color_ids: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateCirculaireColor {
+    #[serde(rename = "_id")]
     pub id: String,
     #[serde(rename = "circulaireId")]
     pub circulaire_id: String,

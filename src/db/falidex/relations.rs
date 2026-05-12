@@ -1,6 +1,7 @@
 use crate::model::falidex_model::{CreateLinkDetail, Link, LinkDetail, LinkItem};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Collection, Database};
+use uuid::Uuid;
 
 pub async fn get(db: &Database) -> Result<Vec<Link>, String> {
     let col: Collection<Link> = db.collection::<Link>("links");
@@ -74,7 +75,7 @@ pub async fn create_item_relation(
 
     // Générer un id si non fourni
     if data.id.is_none() {
-        data.id = Some(mongodb::bson::oid::ObjectId::new().to_hex());
+        data.id = Some(Uuid::new_v4().to_string());
     }
 
     // Définir les dates de création et modification
@@ -181,7 +182,7 @@ pub async fn fix_relation_id(db: &Database) -> Result<String, String> {
         // Parcourir chaque relation et générer un ID si absent
         for relation in &mut link.relations {
             if relation.id.is_none() {
-                relation.id = Some(mongodb::bson::oid::ObjectId::new().to_hex());
+                relation.id = Some(Uuid::new_v4().to_string());
                 has_changes = true;
             }
         }

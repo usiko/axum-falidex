@@ -1,4 +1,4 @@
-use crate::model::falidex_model::{CirculaireColor, Color, OccurenceDetail};
+use crate::model::falidex_model::{CirculaireColor, Color, CreateColor, OccurenceDetail};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
@@ -13,8 +13,8 @@ pub async fn get(db: &Database) -> Result<Vec<Color>, String> {
         .map_err(|e| e.to_string())?;
     Ok(colors)
 }
-pub async fn create(db: &Database, data: Color) -> Result<String, String> {
-    let col: Collection<Color> = db.collection::<Color>("colors");
+pub async fn create(db: &Database, data: CreateColor) -> Result<String, String> {
+    let col: Collection<CreateColor> = db.collection::<CreateColor>("colors");
     col.insert_one(data)
         .await
         .map(|_| "Color créée avec succès".to_string())
@@ -38,7 +38,7 @@ pub async fn update(db: &Database, id: String, data: Color) -> Result<String, St
 pub async fn delete(db: &Database, id: String) -> Result<String, String> {
     // Vérifier les occurrences (circulaire_color + relations)
     let occurences = get_occurences(db, id.clone()).await?;
-    
+
     if !occurences.is_empty() {
         let total_items: u64 = occurences.iter().map(|o| o.items).sum();
         return Err(format!(

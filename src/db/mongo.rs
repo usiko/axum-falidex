@@ -17,7 +17,7 @@ impl MongoDB {
         let uri = "mongodb+srv://quentinusiko_db_user:58sErWBbkymGdUHb@cluster0.1vbyumm.mongodb.net/?appName=Cluster0";
         // Create a new client and connect to the server
         let client = Client::with_uri_str(uri).await?;
-        let db = client.database("dev-falidex");
+        let db = client.database("test-falidex");
 
         Ok(Self { client, db })
     }

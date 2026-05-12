@@ -1,4 +1,4 @@
-use crate::model::falidex_model::{LinkDetail, OccurenceDetail, Symbole};
+use crate::model::falidex_model::{CreateSymbole, LinkDetail, OccurenceDetail, Symbole};
 use futures::stream::TryStreamExt;
 use mongodb::{bson::doc, Collection, Database};
 
@@ -14,8 +14,8 @@ pub async fn get(db: &Database) -> Result<Vec<Symbole>, String> {
     Ok(symboles)
 }
 
-pub async fn create(db: &Database, data: Symbole) -> Result<String, String> {
-    let col: Collection<Symbole> = db.collection::<Symbole>("symboles");
+pub async fn create(db: &Database, data: CreateSymbole) -> Result<String, String> {
+    let col: Collection<CreateSymbole> = db.collection::<CreateSymbole>("symboles");
     col.insert_one(data)
         .await
         .map(|_| "Symbole créé avec succès".to_string())
