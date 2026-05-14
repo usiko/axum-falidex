@@ -18,10 +18,16 @@ pub async fn get(db: &Database) -> Result<Vec<Log>, String> {
 pub async fn add(db: &Database, user_id: String, info: String) -> Result<String, String> {
     let col: Collection<Log> = db.collection::<Log>("log");
 
+    let user_name = match crate::db::user::get_by_id(db, user_id.clone()).await {
+        Ok(user) => user.username,
+        Err(_) => "unknown".to_string(),
+    };
+
     let log = Log {
         id: uuid::Uuid::new_v4().to_string(),
         date: Utc::now().to_rfc3339(),
         user_id,
+        user_name,
         info,
     };
 

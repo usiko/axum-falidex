@@ -360,10 +360,12 @@ pub struct OccurenceDetail {
 
 #[derive(Deserialize, Serialize)]
 pub struct Log {
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(rename = "_id")]
     pub id: String,
     pub date: String,
     #[serde(rename = "userId")]
     pub user_id: String,
+    #[serde(rename = "userName")]
+    pub user_name: String,
     pub info: String,
 }
