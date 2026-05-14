@@ -4,7 +4,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_jwt::Claims;
-use mongodb::bson::oid::ObjectId;
 use reqwest::StatusCode;
 use serde_json::json;
 use uuid::Uuid;
