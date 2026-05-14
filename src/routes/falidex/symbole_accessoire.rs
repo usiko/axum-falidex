@@ -7,6 +7,8 @@ use axum::{
 };
 use axum::http::status::StatusCode;
 use serde_json::json;
+use crate::routes::users::AppClaims;
+use axum_jwt::Claims;
 
 pub async fn get(State(state): State<AppState>) -> Response {
     match symbole_accessoire::get(&state.db.db).await {
@@ -19,9 +21,14 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<SymboleAccessoireReq>) -> Response {
+pub async fn create(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Json(payload): Json<SymboleAccessoireReq>,
+) -> Response {
+    let user_id = token.sub;
     let symbole_accessoire = payload.into();
-    match symbole_accessoire::create(&state.db.db, symbole_accessoire).await {
+    match symbole_accessoire::create(&state.db.db, user_id, symbole_accessoire).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,12 +49,14 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<SymboleAc
 }
 
 pub async fn update(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(payload): Json<SymboleAccessoireReq>,
 ) -> Response {
+    let user_id = token.sub;
     let symbole_accessoire = payload.into();
-    match symbole_accessoire::update(&state.db.db, id, symbole_accessoire).await {
+    match symbole_accessoire::update(&state.db.db, user_id, id, symbole_accessoire).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -67,8 +76,13 @@ pub async fn update(
     }
 }
 
-pub async fn delete(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    match symbole_accessoire::delete(&state.db.db, id).await {
+pub async fn delete(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Response {
+    let user_id = token.sub;
+    match symbole_accessoire::delete(&state.db.db, user_id, id).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({

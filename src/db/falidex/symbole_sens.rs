@@ -1,6 +1,6 @@
 use crate::model::falidex_model::{CreateSymboleSens, LinkDetail, OccurenceDetail, SymboleSens};
 use futures::stream::TryStreamExt;
-use mongodb::{bson::doc, Collection, Database};
+use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<SymboleSens>, String> {
     let col: Collection<SymboleSens> = db.collection::<SymboleSens>("symboles-sens");
@@ -14,7 +14,13 @@ pub async fn get(db: &Database) -> Result<Vec<SymboleSens>, String> {
     Ok(symboles_sens)
 }
 
-pub async fn create(db: &Database, data: CreateSymboleSens) -> Result<String, String> {
+pub async fn create(db: &Database, user_id: String, data: CreateSymboleSens) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        "[falidex][symbole_sens][create]".to_string(),
+    )
+    .await;
     let col: Collection<CreateSymboleSens> = db.collection::<CreateSymboleSens>("symboles-sens");
     col.insert_one(data)
         .await
@@ -22,7 +28,13 @@ pub async fn create(db: &Database, data: CreateSymboleSens) -> Result<String, St
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, id: String, data: SymboleSens) -> Result<String, String> {
+pub async fn update(db: &Database, user_id: String, id: String, data: SymboleSens) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][symbole_sens][update] id: {}", id),
+    )
+    .await;
     let col: Collection<SymboleSens> = db.collection::<SymboleSens>("symboles-sens");
     let result = col
         .replace_one(doc! { "_id": id }, data)
@@ -36,10 +48,16 @@ pub async fn update(db: &Database, id: String, data: SymboleSens) -> Result<Stri
     }
 }
 
-pub async fn delete(db: &Database, id: String) -> Result<String, String> {
+pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][symbole_sens][delete] id: {}", id),
+    )
+    .await;
     // Vérifier les occurrences dans les relations
     let occurences = get_occurences(db, id.clone()).await?;
-    
+
     if !occurences.is_empty() {
         let total_items: u64 = occurences.iter().map(|o| o.items).sum();
         return Err(format!(

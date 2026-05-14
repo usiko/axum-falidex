@@ -3,6 +3,7 @@ use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
 };
+use axum_jwt::Claims;
 use reqwest::StatusCode;
 use serde_json::json;
 use uuid::Uuid;
@@ -10,6 +11,7 @@ use uuid::Uuid;
 use crate::{
     db::falidex::relations,
     model::falidex_model::{CreateLinkDetail, LinkDetail, LinkDetailReq, LinkItem},
+    routes::users::AppClaims,
     state::AppState,
 };
 
@@ -34,9 +36,11 @@ pub async fn get_item(State(state): State<AppState>, Path(link_id): Path<String>
     }
 }
 pub async fn update_item(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Json(payload): Json<LinkDetailReq>,
 ) -> Response {
+    let user_id = token.sub;
     let now = chrono::Utc::now().to_rfc3339();
     let link_detail = LinkDetail {
         id: payload.id,
@@ -53,7 +57,7 @@ pub async fn update_item(
         ville: payload.ville,
     };
 
-    match relations::update(&state.db.db, link_detail).await {
+    match relations::update(&state.db.db, user_id, link_detail).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -73,11 +77,13 @@ pub async fn update_item(
     }
 }
 pub async fn update_item_relation(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(link_id): Path<String>,
     Json(payload): Json<LinkItem>,
 ) -> Response {
-    match relations::update_item_relation(&state.db.db, link_id, payload).await {
+    let user_id = token.sub;
+    match relations::update_item_relation(&state.db.db, user_id, link_id, payload).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -97,11 +103,13 @@ pub async fn update_item_relation(
     }
 }
 pub async fn create_item_relation(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(link_id): Path<String>,
     Json(payload): Json<LinkItem>,
 ) -> Response {
-    match relations::create_item_relation(&state.db.db, link_id, payload).await {
+    let user_id = token.sub;
+    match relations::create_item_relation(&state.db.db, user_id, link_id, payload).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -121,9 +129,11 @@ pub async fn create_item_relation(
     }
 }
 pub async fn create_item(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Json(mut payload): Json<CreateLinkDetail>,
 ) -> Response {
+    let user_id = token.sub;
     // Générer un _id string si absent
     if payload.id.is_none() {
         payload.id = Some(Uuid::new_v4().to_string());
@@ -133,7 +143,7 @@ pub async fn create_item(
     let now = chrono::Utc::now().to_rfc3339();
     payload.created_at = Some(now.clone());
     payload.last_update = Some(now);
-    match relations::create(&state.db.db, payload).await {
+    match relations::create(&state.db.db, user_id, payload).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -153,8 +163,13 @@ pub async fn create_item(
     }
 }
 
-pub async fn delete_item(State(state): State<AppState>, Path(link_id): Path<String>) -> Response {
-    match relations::delete(&state.db.db, link_id).await {
+pub async fn delete_item(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Path(link_id): Path<String>,
+) -> Response {
+    let user_id = token.sub;
+    match relations::delete(&state.db.db, user_id, link_id).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -175,10 +190,12 @@ pub async fn delete_item(State(state): State<AppState>, Path(link_id): Path<Stri
 }
 
 pub async fn delete_item_relation(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path((link_id, relation_id)): Path<(String, String)>,
 ) -> Response {
-    match relations::delete_item_relation(&state.db.db, link_id, relation_id).await {
+    let user_id = token.sub;
+    match relations::delete_item_relation(&state.db.db, user_id, link_id, relation_id).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({

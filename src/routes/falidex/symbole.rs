@@ -1,11 +1,12 @@
-use crate::{db::falidex::symbole, state::AppState};
 use super::model::SymboleReq;
+use crate::{db::falidex::symbole, routes::users::AppClaims, state::AppState};
+use axum::http::status::StatusCode;
 use axum::{
     Json,
     extract::{Path, State},
     response::{IntoResponse, Response},
 };
-use axum::http::status::StatusCode;
+use axum_jwt::Claims;
 use serde_json::json;
 
 pub async fn get(State(state): State<AppState>) -> Response {
@@ -19,9 +20,14 @@ pub async fn get(State(state): State<AppState>) -> Response {
     }
 }
 
-pub async fn create(State(state): State<AppState>, Json(payload): Json<SymboleReq>) -> Response {
+pub async fn create(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Json(payload): Json<SymboleReq>,
+) -> Response {
+    let user_id = token.sub;
     let symbole = payload.into();
-    match symbole::create(&state.db.db, symbole).await {
+    match symbole::create(&state.db.db, user_id, symbole).await {
         Ok(message) => (
             StatusCode::CREATED,
             Json(json!({
@@ -42,12 +48,14 @@ pub async fn create(State(state): State<AppState>, Json(payload): Json<SymboleRe
 }
 
 pub async fn update(
+    Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(payload): Json<SymboleReq>,
 ) -> Response {
+    let user_id = token.sub;
     let symbole = payload.into();
-    match symbole::update(&state.db.db, id, symbole).await {
+    match symbole::update(&state.db.db, user_id, id, symbole).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({
@@ -67,8 +75,13 @@ pub async fn update(
     }
 }
 
-pub async fn delete(State(state): State<AppState>, Path(id): Path<String>) -> Response {
-    match symbole::delete(&state.db.db, id).await {
+pub async fn delete(
+    Claims(token): Claims<AppClaims>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Response {
+    let user_id = token.sub;
+    match symbole::delete(&state.db.db, user_id, id).await {
         Ok(message) => (
             StatusCode::OK,
             Json(json!({

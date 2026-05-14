@@ -14,7 +14,8 @@ pub async fn get(db: &Database) -> Result<Vec<Filiere>, String> {
     Ok(filieres)
 }
 
-pub async fn create(db: &Database, data: CreateFiliere) -> Result<String, String> {
+pub async fn create(db: &Database, user_id: String, data: CreateFiliere) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, "[falidex][filiere][create]".to_string()).await;
     let col: Collection<CreateFiliere> = db.collection::<CreateFiliere>("filieres");
     col.insert_one(data)
         .await
@@ -22,7 +23,8 @@ pub async fn create(db: &Database, data: CreateFiliere) -> Result<String, String
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, id: String, data: Filiere) -> Result<String, String> {
+pub async fn update(db: &Database, user_id: String, id: String, data: Filiere) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, format!("[falidex][filiere][update] id: {}", id)).await;
     let col: Collection<Filiere> = db.collection::<Filiere>("filieres");
     let result = col
         .replace_one(doc! { "_id": id }, data)
@@ -36,7 +38,8 @@ pub async fn update(db: &Database, id: String, data: Filiere) -> Result<String, 
     }
 }
 
-pub async fn delete(db: &Database, id: String) -> Result<String, String> {
+pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, format!("[falidex][filiere][delete] id: {}", id)).await;
     // Vérifier les occurrences dans les relations
     let occurences = get_occurences(db, id.clone()).await?;
     

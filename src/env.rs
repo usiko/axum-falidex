@@ -62,7 +62,7 @@ pub fn get_bdd() -> String {
         Ok(val) => val,
         Err(_) => {
             println!("BDD, utilisation de la valeur par défaut: ");
-            "".to_string()
+            "test-falidex".to_string()
         }
     }
 }

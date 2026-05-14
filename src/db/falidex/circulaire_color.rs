@@ -1,4 +1,6 @@
-use crate::model::falidex_model::{CirculaireColor, CreateCirculaireColor, LinkDetail, OccurenceDetail};
+use crate::model::falidex_model::{
+    CirculaireColor, CreateCirculaireColor, LinkDetail, OccurenceDetail,
+};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
@@ -14,15 +16,37 @@ pub async fn get(db: &Database) -> Result<Vec<CirculaireColor>, String> {
     Ok(circulaires_colors)
 }
 
-pub async fn create(db: &Database, data: CreateCirculaireColor) -> Result<String, String> {
-    let col: Collection<CreateCirculaireColor> = db.collection::<CreateCirculaireColor>("circulaires-colors");
+pub async fn create(
+    db: &Database,
+    user_id: String,
+    data: CreateCirculaireColor,
+) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        "[falidex][circulaire_color][create]".to_string(),
+    )
+    .await;
+    let col: Collection<CreateCirculaireColor> =
+        db.collection::<CreateCirculaireColor>("circulaires-colors");
     col.insert_one(data)
         .await
         .map(|_| "CirculaireColor créée avec succès".to_string())
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, id: String, data: CirculaireColor) -> Result<String, String> {
+pub async fn update(
+    db: &Database,
+    user_id: String,
+    id: String,
+    data: CirculaireColor,
+) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][circulaire_color][update] id: {}", id),
+    )
+    .await;
     let col: Collection<CirculaireColor> = db.collection::<CirculaireColor>("circulaires-colors");
     let result = col
         .replace_one(doc! { "_id": id }, data)
@@ -36,7 +60,13 @@ pub async fn update(db: &Database, id: String, data: CirculaireColor) -> Result<
     }
 }
 
-pub async fn delete(db: &Database, id: String) -> Result<String, String> {
+pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][circulaire_color][delete] id: {}", id),
+    )
+    .await;
     // Vérifier les occurrences dans les relations
     let occurences = get_occurences(db, id.clone()).await?;
 
@@ -101,4 +131,8 @@ pub async fn get_occurences(
     }
 
     Ok(occurences)
+}
+
+fn get_col(db: &Database) -> Collection<CirculaireColor> {
+    db.collection::<CirculaireColor>("circulaires-colors")
 }
