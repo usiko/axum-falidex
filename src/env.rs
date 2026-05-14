@@ -57,3 +57,12 @@ pub fn get_allowed_origins() -> String {
         }
     }
 }
+pub fn get_bdd() -> String {
+    match std::env::var("BDD") {
+        Ok(val) => val,
+        Err(_) => {
+            println!("BDD, utilisation de la valeur par défaut: ");
+            "test-falidex".to_string()
+        }
+    }
+}

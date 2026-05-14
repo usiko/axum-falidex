@@ -1,9 +1,11 @@
-use crate::model::falidex_model::{Circulaire, CirculaireColor, LinkDetail, OccurenceDetail};
+use crate::model::falidex_model::{
+    Circulaire, CirculaireColor, CreateCirculaire, LinkDetail, OccurenceDetail,
+};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<Circulaire>, String> {
-    let col: Collection<Circulaire> = get_col(db);
+    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
     let circulaires: Vec<Circulaire> = col
         .find(doc! {})
         .await
@@ -15,7 +17,7 @@ pub async fn get(db: &Database) -> Result<Vec<Circulaire>, String> {
 }
 pub async fn create(db: &Database, user_id: String, data: Circulaire) -> Result<String, String> {
     let _ = crate::db::log::add(db, user_id, "[falidex][circulaire][create]".to_string()).await;
-    let col: Collection<Circulaire> = get_col(db);
+    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
     col.insert_one(data)
         .await
         .map(|_| "Circulaire créée avec succès".to_string())
@@ -34,7 +36,7 @@ pub async fn update(
         format!("[falidex][circulaire][update] id: {}", id),
     )
     .await;
-    let col: Collection<Circulaire> = get_col(db);
+    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
     let result = col
         .replace_one(doc! { "_id": id }, data)
         .await
@@ -80,7 +82,7 @@ pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String
         })?;
 
     // Ensuite supprimer la circulaire
-    let col: Collection<Circulaire> = get_col(db);
+    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
     let result = col
         .delete_one(doc! { "_id": id })
         .await
@@ -129,8 +131,4 @@ pub async fn get_occurences(db: &Database, id: String) -> Result<Vec<OccurenceDe
     }
 
     Ok(occurences)
-}
-
-fn get_col(db: &Database) -> Collection<Circulaire> {
-    db.collection::<Circulaire>("circulaires")
 }

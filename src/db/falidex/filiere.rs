@@ -1,4 +1,4 @@
-use crate::model::falidex_model::{Filiere, LinkDetail, OccurenceDetail};
+use crate::model::falidex_model::{CreateFiliere, Filiere, LinkDetail, OccurenceDetail};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 

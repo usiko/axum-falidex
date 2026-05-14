@@ -1,16 +1,53 @@
-use serde::{Deserialize, Serialize};
+use mongodb::bson::Bson;
+use serde::{Deserialize, Deserializer, Serialize};
+
+fn deserialize_id_to_string<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match Bson::deserialize(deserializer)? {
+        Bson::String(value) => Ok(value),
+        Bson::ObjectId(value) => Ok(value.to_hex()),
+        other => Err(serde::de::Error::custom(format!(
+            "unsupported _id type: {other:?}"
+        ))),
+    }
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct Circulaire {
     pub matiere: String,
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct CreateCirculaire {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub matiere: String,
+    pub name: String,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Color {
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
+    pub id: String,
+    pub name: String,
+    #[serde(rename = "colorData")]
+    pub color_data: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateColor {
+    #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
     #[serde(rename = "colorData")]
@@ -20,43 +57,103 @@ pub struct Color {
 #[derive(Deserialize, Serialize)]
 pub struct Filiere {
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateFiliere {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Placement {
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreatePlacement {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Position {
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreatePosition {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Signification {
     pub content: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateSignification {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub content: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct SymboleAccessoire {
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateSymboleAccessoire {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct SymboleSens {
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateSymboleSens {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -68,15 +165,40 @@ pub struct Img {
 #[derive(Deserialize, Serialize)]
 pub struct Symbole {
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub imgs: Option<Vec<Img>>,
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct CreateSymbole {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imgs: Option<Vec<Img>>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct CirculaireColor {
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
+    pub id: String,
+    #[serde(rename = "circulaireId")]
+    pub circulaire_id: String,
+    #[serde(rename = "colorIds")]
+    pub color_ids: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreateCirculaireColor {
+    #[serde(rename = "_id")]
     pub id: String,
     #[serde(rename = "circulaireId")]
     pub circulaire_id: String,
@@ -87,16 +209,36 @@ pub struct CirculaireColor {
 #[derive(Deserialize, Serialize)]
 pub struct Link {
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annee: Option<u64>,
     #[serde(rename = "lastUpdate")]
     pub last_update: String,
+    #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub editable: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub national: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ville: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct LinkDetail {
     pub name: String,
-    #[serde(rename(deserialize = "_id", serialize = "id"))]
+    #[serde(
+        rename(deserialize = "_id", serialize = "id"),
+        deserialize_with = "deserialize_id_to_string"
+    )]
     pub id: String,
     pub relations: Vec<LinkItem>,
     pub specificites: Vec<Specificite>,

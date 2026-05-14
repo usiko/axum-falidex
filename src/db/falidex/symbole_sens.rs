@@ -1,4 +1,4 @@
-use crate::model::falidex_model::{LinkDetail, OccurenceDetail, SymboleSens};
+use crate::model::falidex_model::{CreateSymboleSens, LinkDetail, OccurenceDetail, SymboleSens};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 

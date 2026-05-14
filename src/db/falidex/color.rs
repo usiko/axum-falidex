@@ -1,4 +1,4 @@
-use crate::model::falidex_model::{CirculaireColor, Color, OccurenceDetail};
+use crate::model::falidex_model::{CirculaireColor, Color, CreateColor, OccurenceDetail};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
@@ -41,7 +41,7 @@ pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String
     let _ = crate::db::log::add(db, user_id, format!("[falidex][color][delete] id: {}", id)).await;
     // Vérifier les occurrences (circulaire_color + relations)
     let occurences = get_occurences(db, id.clone()).await?;
-    
+
     if !occurences.is_empty() {
         let total_items: u64 = occurences.iter().map(|o| o.items).sum();
         return Err(format!(

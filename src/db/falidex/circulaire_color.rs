@@ -1,9 +1,11 @@
-use crate::model::falidex_model::{CirculaireColor, LinkDetail, OccurenceDetail};
+use crate::model::falidex_model::{
+    CirculaireColor, CreateCirculaireColor, LinkDetail, OccurenceDetail,
+};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<CirculaireColor>, String> {
-    let col: Collection<CirculaireColor> = get_col(db);
+    let col: Collection<CirculaireColor> = get_col(&db);
     let circulaires_colors: Vec<CirculaireColor> = col
         .find(doc! {})
         .await
@@ -25,7 +27,7 @@ pub async fn create(
         "[falidex][circulaire_color][create]".to_string(),
     )
     .await;
-    let col: Collection<CirculaireColor> = get_col(db);
+    let col: Collection<CirculaireColor> = get_col(&db);
     col.insert_one(data)
         .await
         .map(|_| "CirculaireColor créée avec succès".to_string())
@@ -44,7 +46,7 @@ pub async fn update(
         format!("[falidex][circulaire_color][update] id: {}", id),
     )
     .await;
-    let col: Collection<CirculaireColor> = get_col(db);
+    let col: Collection<CirculaireColor> = get_col(&db);
     let result = col
         .replace_one(doc! { "_id": id }, data)
         .await
@@ -76,7 +78,7 @@ pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String
         ));
     }
 
-    let col: Collection<CirculaireColor> = get_col(db);
+    let col: Collection<CirculaireColor> = get_col(&db);
     let result = col
         .delete_one(doc! { "_id": id })
         .await
@@ -87,10 +89,6 @@ pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String
     } else {
         Err("Aucune circulaire color trouvée avec cet identifiant".to_string())
     }
-}
-
-fn get_col(db: &Database) -> Collection<CirculaireColor> {
-    db.collection::<CirculaireColor>("circulaires-colors")
 }
 
 pub async fn get_occurences(
@@ -132,4 +130,8 @@ pub async fn get_occurences(
     }
 
     Ok(occurences)
+}
+
+fn get_col(db: &Database) -> Collection<CirculaireColor> {
+    db.collection::<CirculaireColor>("circulaires-colors")
 }

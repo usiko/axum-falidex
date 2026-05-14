@@ -1,5 +1,6 @@
 use crate::model::falidex_model;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 // Modèles de route pour les requêtes API (utilisent 'id' au lieu de '_id')
 
@@ -17,6 +18,16 @@ impl From<CirculaireReq> for falidex_model::Circulaire {
             matiere: req.matiere,
             name: req.name,
             id: req.id.unwrap_or_default(),
+        }
+    }
+}
+
+impl From<CirculaireReq> for falidex_model::CreateCirculaire {
+    fn from(req: CirculaireReq) -> Self {
+        falidex_model::CreateCirculaire {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            matiere: req.matiere,
+            name: req.name,
         }
     }
 }
@@ -39,6 +50,16 @@ impl From<ColorReq> for falidex_model::Color {
     }
 }
 
+impl From<ColorReq> for falidex_model::CreateColor {
+    fn from(req: ColorReq) -> Self {
+        falidex_model::CreateColor {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            name: req.name,
+            color_data: req.color_data,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct FiliereReq {
     pub name: String,
@@ -51,6 +72,15 @@ impl From<FiliereReq> for falidex_model::Filiere {
         falidex_model::Filiere {
             name: req.name,
             id: req.id.unwrap_or_default(),
+        }
+    }
+}
+
+impl From<FiliereReq> for falidex_model::CreateFiliere {
+    fn from(req: FiliereReq) -> Self {
+        falidex_model::CreateFiliere {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            name: req.name,
         }
     }
 }
@@ -71,6 +101,15 @@ impl From<PlacementReq> for falidex_model::Placement {
     }
 }
 
+impl From<PlacementReq> for falidex_model::CreatePlacement {
+    fn from(req: PlacementReq) -> Self {
+        falidex_model::CreatePlacement {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            name: req.name,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct PositionReq {
     pub name: String,
@@ -83,6 +122,15 @@ impl From<PositionReq> for falidex_model::Position {
         falidex_model::Position {
             name: req.name,
             id: req.id.unwrap_or_default(),
+        }
+    }
+}
+
+impl From<PositionReq> for falidex_model::CreatePosition {
+    fn from(req: PositionReq) -> Self {
+        falidex_model::CreatePosition {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            name: req.name,
         }
     }
 }
@@ -103,6 +151,15 @@ impl From<SignificationReq> for falidex_model::Signification {
     }
 }
 
+impl From<SignificationReq> for falidex_model::CreateSignification {
+    fn from(req: SignificationReq) -> Self {
+        falidex_model::CreateSignification {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            content: req.content,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct SymboleAccessoireReq {
     pub name: String,
@@ -119,6 +176,15 @@ impl From<SymboleAccessoireReq> for falidex_model::SymboleAccessoire {
     }
 }
 
+impl From<SymboleAccessoireReq> for falidex_model::CreateSymboleAccessoire {
+    fn from(req: SymboleAccessoireReq) -> Self {
+        falidex_model::CreateSymboleAccessoire {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            name: req.name,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct SymboleSensReq {
     pub name: String,
@@ -131,6 +197,15 @@ impl From<SymboleSensReq> for falidex_model::SymboleSens {
         falidex_model::SymboleSens {
             name: req.name,
             id: req.id.unwrap_or_default(),
+        }
+    }
+}
+
+impl From<SymboleSensReq> for falidex_model::CreateSymboleSens {
+    fn from(req: SymboleSensReq) -> Self {
+        falidex_model::CreateSymboleSens {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            name: req.name,
         }
     }
 }
@@ -154,6 +229,16 @@ impl From<SymboleReq> for falidex_model::Symbole {
     }
 }
 
+impl From<SymboleReq> for falidex_model::CreateSymbole {
+    fn from(req: SymboleReq) -> Self {
+        falidex_model::CreateSymbole {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            name: req.name,
+            imgs: req.imgs,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct CirculaireColorReq {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -168,6 +253,16 @@ impl From<CirculaireColorReq> for falidex_model::CirculaireColor {
     fn from(req: CirculaireColorReq) -> Self {
         falidex_model::CirculaireColor {
             id: req.id.unwrap_or_default(),
+            circulaire_id: req.circulaire_id,
+            color_ids: req.color_ids,
+        }
+    }
+}
+
+impl From<CirculaireColorReq> for falidex_model::CreateCirculaireColor {
+    fn from(req: CirculaireColorReq) -> Self {
+        falidex_model::CreateCirculaireColor {
+            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
             circulaire_id: req.circulaire_id,
             color_ids: req.color_ids,
         }
