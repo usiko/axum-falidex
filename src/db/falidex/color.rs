@@ -13,9 +13,9 @@ pub async fn get(db: &Database) -> Result<Vec<Color>, String> {
         .map_err(|e| e.to_string())?;
     Ok(colors)
 }
-pub async fn create(db: &Database, user_id: String, data: Color) -> Result<String, String> {
+pub async fn create(db: &Database, user_id: String, data: CreateColor) -> Result<String, String> {
     let _ = crate::db::log::add(db, user_id, "[falidex][color][create]".to_string()).await;
-    let col: Collection<Color> = db.collection::<Color>("colors");
+    let col: Collection<CreateColor> = db.collection::<CreateColor>("colors");
     col.insert_one(data)
         .await
         .map(|_| "Color créée avec succès".to_string())

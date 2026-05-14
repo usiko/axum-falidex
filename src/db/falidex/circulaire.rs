@@ -15,9 +15,13 @@ pub async fn get(db: &Database) -> Result<Vec<Circulaire>, String> {
         .map_err(|e| e.to_string())?;
     Ok(circulaires)
 }
-pub async fn create(db: &Database, user_id: String, data: Circulaire) -> Result<String, String> {
+pub async fn create(
+    db: &Database,
+    user_id: String,
+    data: CreateCirculaire,
+) -> Result<String, String> {
     let _ = crate::db::log::add(db, user_id, "[falidex][circulaire][create]".to_string()).await;
-    let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
+    let col: Collection<CreateCirculaire> = db.collection::<CreateCirculaire>("circulaires");
     col.insert_one(data)
         .await
         .map(|_| "Circulaire créée avec succès".to_string())

@@ -14,9 +14,9 @@ pub async fn get(db: &Database) -> Result<Vec<Signification>, String> {
     Ok(significations)
 }
 
-pub async fn create(db: &Database, user_id: String, data: Signification) -> Result<String, String> {
+pub async fn create(db: &Database, user_id: String, data: CreateSignification) -> Result<String, String> {
     let _ = crate::db::log::add(db, user_id, "[falidex][signification][create]".to_string()).await;
-    let col: Collection<Signification> = db.collection::<Signification>("significations");
+    let col: Collection<CreateSignification> = db.collection::<CreateSignification>("significations");
     col.insert_one(data)
         .await
         .map(|_| "Signification créée avec succès".to_string())
