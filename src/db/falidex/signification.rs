@@ -1,6 +1,8 @@
-use crate::model::falidex_model::{CreateSignification, LinkDetail, OccurenceDetail, Signification};
+use crate::model::falidex_model::{CreateSignification, LinkDetail, OccurenceDetail, Signification, UpdateSignification};
 use futures::stream::TryStreamExt;
+use mongodb::bson;
 use mongodb::{bson::doc, Collection, Database};
+use super::update_helper;
 
 pub async fn get(db: &Database) -> Result<Vec<Signification>, String> {
     let col: Collection<Signification> = db.collection::<Signification>("significations");
@@ -23,18 +25,23 @@ pub async fn create(db: &Database, user_id: String, data: CreateSignification) -
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, user_id: String, id: String, data: Signification) -> Result<String, String> {
+pub async fn update(db: &Database, user_id: String, id: String, data: UpdateSignification) -> Result<String, String> {
     let _ = crate::db::log::add(db, user_id, format!("[falidex][signification][update] id: {}", id)).await;
     let col: Collection<Signification> = db.collection::<Signification>("significations");
-    let result = col
-        .replace_one(doc! { "_id": id }, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
-    if result.modified_count > 0 {
+    let mut update_doc = doc! {};
+    if let Some(content) = data.content {
+        update_doc.insert("content", content);
+    }
+
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucune signification trouvée avec cet identifiant".to_string())
+    } else if modified > 0 {
         Ok("Signification mise à jour avec succès".to_string())
     } else {
-        Err("Aucune signification trouvée avec cet identifiant".to_string())
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
     }
 }
 

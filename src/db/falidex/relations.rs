@@ -1,6 +1,8 @@
+use super::update_helper;
 use crate::model::falidex_model::{CreateLinkDetail, Link, LinkDetail, LinkItem};
 use futures::stream::TryStreamExt;
-use mongodb::{bson::doc, Collection, Database};
+use mongodb::bson;
+use mongodb::{Collection, Database, bson::doc};
 use uuid::Uuid;
 
 pub async fn get(db: &Database) -> Result<Vec<Link>, String> {
@@ -24,7 +26,11 @@ pub async fn get_item(db: &Database, item: String) -> Result<LinkDetail, String>
     result.ok_or("Link not found".to_string())
 }
 
-pub async fn create(db: &Database, user_id: String, data: CreateLinkDetail) -> Result<String, String> {
+pub async fn create(
+    db: &Database,
+    user_id: String,
+    data: CreateLinkDetail,
+) -> Result<String, String> {
     let _ = crate::db::log::add(db, user_id, "[falidex][relations][create]".to_string()).await;
     let col: Collection<CreateLinkDetail> = db.collection::<CreateLinkDetail>("links");
     col.insert_one(data)
@@ -34,22 +40,72 @@ pub async fn create(db: &Database, user_id: String, data: CreateLinkDetail) -> R
 }
 
 pub async fn update(db: &Database, user_id: String, data: LinkDetail) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][relations][update] id: {}", data.id)).await;
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][relations][update] id: {}", data.id),
+    )
+    .await;
     let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
-    let result = col
-        .replace_one(doc! { "_id": data.id.clone()}, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour du link: {}", e))?;
 
-    if result.modified_count > 0 {
-        Ok("Link mis à jour avec succès".to_string())
+    let mut update_doc = doc! {};
+    update_doc.insert("name", data.name);
+    update_doc.insert(
+        "relations",
+        bson::to_bson(&data.relations)
+            .map_err(|e| format!("Erreur lors de la serialisation des relations: {}", e))?,
+    );
+    update_doc.insert(
+        "specificites",
+        bson::to_bson(&data.specificites)
+            .map_err(|e| format!("Erreur lors de la serialisation des specificites: {}", e))?,
+    );
+    update_doc.insert("lastUpdate", data.last_update);
+
+    if let Some(annee) = data.annee {
+        update_doc.insert(
+            "annee",
+            bson::to_bson(&annee)
+                .map_err(|e| format!("Erreur lors de la serialisation de annee: {}", e))?,
+        );
+    }
+    if let Some(created_at) = data.created_at {
+        update_doc.insert("createdAt", created_at);
+    }
+    if let Some(default) = data.default {
+        update_doc.insert("default", default);
+    }
+    if let Some(visible) = data.visible {
+        update_doc.insert("visible", visible);
+    }
+    if let Some(editable) = data.editable {
+        update_doc.insert("editable", editable);
+    }
+    if let Some(national) = data.national {
+        update_doc.insert("national", national);
+    }
+    if let Some(ville) = data.ville {
+        update_doc.insert("ville", ville);
+    }
+
+    let (matched, modified) = update_helper::partial_update(&col, &data.id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucun link trouve avec cet identifiant".to_string())
+    } else if modified > 0 {
+        Ok("Link mis a jour avec succes".to_string())
     } else {
-        Err("Aucun link trouvé avec cet identifiant".to_string())
+        Ok("Aucune modification detectee (valeurs identiques)".to_string())
     }
 }
 
 pub async fn delete(db: &Database, user_id: String, link_id: String) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][relations][delete] id: {}", link_id)).await;
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][relations][delete] id: {}", link_id),
+    )
+    .await;
     let col: Collection<LinkDetail> = db.collection::<LinkDetail>("links");
     let result = col
         .delete_one(doc! { "_id": link_id })
@@ -69,7 +125,15 @@ pub async fn create_item_relation(
     link_id: String,
     mut data: LinkItem,
 ) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id.clone(), format!("[falidex][relations][create_item_relation] link_id: {}", link_id)).await;
+    let _ = crate::db::log::add(
+        db,
+        user_id.clone(),
+        format!(
+            "[falidex][relations][create_item_relation] link_id: {}",
+            link_id
+        ),
+    )
+    .await;
     // Récupérer le LinkDetail existant
     let mut item = get_item(db, link_id.clone()).await?;
 
@@ -101,7 +165,15 @@ pub async fn update_item_relation(
     link_id: String,
     mut data: LinkItem,
 ) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id.clone(), format!("[falidex][relations][update_item_relation] link_id: {}", link_id)).await;
+    let _ = crate::db::log::add(
+        db,
+        user_id.clone(),
+        format!(
+            "[falidex][relations][update_item_relation] link_id: {}",
+            link_id
+        ),
+    )
+    .await;
     // Récupérer le LinkDetail existant
     let mut item = get_item(db, link_id.clone()).await?;
 
@@ -142,7 +214,15 @@ pub async fn delete_item_relation(
     link_id: String,
     relation_id: String,
 ) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id.clone(), format!("[falidex][relations][delete_item_relation] link_id: {}, relation_id: {}", link_id, relation_id)).await;
+    let _ = crate::db::log::add(
+        db,
+        user_id.clone(),
+        format!(
+            "[falidex][relations][delete_item_relation] link_id: {}, relation_id: {}",
+            link_id, relation_id
+        ),
+    )
+    .await;
     // Récupérer le LinkDetail existant
     let mut item = get_item(db, link_id.clone()).await?;
 

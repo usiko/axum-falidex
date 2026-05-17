@@ -1,3 +1,4 @@
+use super::update_helper;
 use crate::model::falidex_model::{
     CreateSymbole, LinkDetail, OccurenceDetail, Symbole, UpdateSymbole,
 };
@@ -50,19 +51,14 @@ pub async fn update(
         update_doc.insert("imgs", imgs_bson);
     }
 
-    if update_doc.is_empty() {
-        return Err("Aucun champ à mettre à jour".to_string());
-    }
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
 
-    let result = col
-        .update_one(doc! { "_id": id }, doc! { "$set": update_doc })
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
-
-    if result.modified_count > 0 {
+    if matched == 0 {
+        Err("Aucun symbole trouvé avec cet identifiant".to_string())
+    } else if modified > 0 {
         Ok("Symbole mis à jour avec succès".to_string())
     } else {
-        Err("Aucun symbole trouvé avec cet identifiant".to_string())
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
     }
 }
 

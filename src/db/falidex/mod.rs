@@ -9,3 +9,4 @@ pub mod signification;
 pub mod symbole;
 pub mod symbole_accessoire;
 pub mod symbole_sens;
+pub mod update_helper;

@@ -1,6 +1,8 @@
-use crate::model::falidex_model::{CreateSymboleSens, LinkDetail, OccurenceDetail, SymboleSens};
+use crate::model::falidex_model::{CreateSymboleSens, LinkDetail, OccurenceDetail, SymboleSens, UpdateSymboleSens};
 use futures::stream::TryStreamExt;
+use mongodb::bson;
 use mongodb::{Collection, Database, bson::doc};
+use super::update_helper;
 
 pub async fn get(db: &Database) -> Result<Vec<SymboleSens>, String> {
     let col: Collection<SymboleSens> = db.collection::<SymboleSens>("symboles-sens");

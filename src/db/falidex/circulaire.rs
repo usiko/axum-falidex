@@ -1,8 +1,10 @@
 use crate::model::falidex_model::{
-    Circulaire, CirculaireColor, CreateCirculaire, LinkDetail, OccurenceDetail,
+    Circulaire, CirculaireColor, CreateCirculaire, LinkDetail, OccurenceDetail, UpdateCirculaire,
 };
 use futures::stream::TryStreamExt;
+use mongodb::bson;
 use mongodb::{Collection, Database, bson::doc};
+use super::update_helper;
 
 pub async fn get(db: &Database) -> Result<Vec<Circulaire>, String> {
     let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
@@ -32,7 +34,7 @@ pub async fn update(
     db: &Database,
     user_id: String,
     id: String,
-    data: Circulaire,
+    data: UpdateCirculaire,
 ) -> Result<String, String> {
     let _ = crate::db::log::add(
         db,
@@ -41,15 +43,23 @@ pub async fn update(
     )
     .await;
     let col: Collection<Circulaire> = db.collection::<Circulaire>("circulaires");
-    let result = col
-        .replace_one(doc! { "_id": id }, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
-    if result.modified_count > 0 {
+    let mut update_doc = doc! {};
+    if let Some(matiere) = data.matiere {
+        update_doc.insert("matiere", matiere);
+    }
+    if let Some(name) = data.name {
+        update_doc.insert("name", name);
+    }
+
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucune circulaire trouvée avec cet identifiant".to_string())
+    } else if modified > 0 {
         Ok("Circulaire mise à jour avec succès".to_string())
     } else {
-        Err("Aucune circulaire trouvée avec cet identifiant".to_string())
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
     }
 }
 

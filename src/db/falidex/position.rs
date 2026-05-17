@@ -1,6 +1,8 @@
-use crate::model::falidex_model::{CreatePosition, LinkDetail, OccurenceDetail, Position};
+use crate::model::falidex_model::{CreatePosition, LinkDetail, OccurenceDetail, Position, UpdatePosition};
 use futures::stream::TryStreamExt;
+use mongodb::bson;
 use mongodb::{bson::doc, Collection, Database};
+use super::update_helper;
 
 pub async fn get(db: &Database) -> Result<Vec<Position>, String> {
     let col: Collection<Position> = db.collection::<Position>("positions");
@@ -23,18 +25,23 @@ pub async fn create(db: &Database, user_id: String, data: CreatePosition) -> Res
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, user_id: String, id: String, data: Position) -> Result<String, String> {
+pub async fn update(db: &Database, user_id: String, id: String, data: UpdatePosition) -> Result<String, String> {
     let _ = crate::db::log::add(db, user_id, format!("[falidex][position][update] id: {}", id)).await;
     let col: Collection<Position> = db.collection::<Position>("positions");
-    let result = col
-        .replace_one(doc! { "_id": id }, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
-    if result.modified_count > 0 {
+    let mut update_doc = doc! {};
+    if let Some(name) = data.name {
+        update_doc.insert("name", name);
+    }
+
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucune position trouvée avec cet identifiant".to_string())
+    } else if modified > 0 {
         Ok("Position mise à jour avec succès".to_string())
     } else {
-        Err("Aucune position trouvée avec cet identifiant".to_string())
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
     }
 }
 

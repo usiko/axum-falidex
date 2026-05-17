@@ -1,6 +1,8 @@
-use crate::model::falidex_model::{CreateSymboleAccessoire, LinkDetail, OccurenceDetail, SymboleAccessoire};
+use crate::model::falidex_model::{CreateSymboleAccessoire, LinkDetail, OccurenceDetail, SymboleAccessoire, UpdateSymboleAccessoire};
 use futures::stream::TryStreamExt;
+use mongodb::bson;
 use mongodb::{bson::doc, Collection, Database};
+use super::update_helper;
 
 pub async fn get(db: &Database) -> Result<Vec<SymboleAccessoire>, String> {
     let col: Collection<SymboleAccessoire> = db.collection::<SymboleAccessoire>("symboles-accessories");
@@ -23,18 +25,30 @@ pub async fn create(db: &Database, user_id: String, data: CreateSymboleAccessoir
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, user_id: String, id: String, data: SymboleAccessoire) -> Result<String, String> {
+pub async fn update(db: &Database, user_id: String, id: String, data: UpdateSymboleAccessoire) -> Result<String, String> {
     let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole_accessoire][update] id: {}", id)).await;
     let col: Collection<SymboleAccessoire> = db.collection::<SymboleAccessoire>("symboles-accessories");
-    let result = col
-        .replace_one(doc! { "_id": id }, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
-    if result.modified_count > 0 {
-        Ok("Symbole accessoire mis à jour avec succès".to_string())
+    let mut update_doc = doc! {};
+    if let Some(name) = data.name {
+        update_doc.insert("name", name);
+    }
+
+    if update_doc.is_empty() {
+        return Err("Aucun champ a mettre a jour".to_string());
+    }
+
+    let result = col
+        .update_one(doc! { "_id": id }, doc! { "$set": update_doc })
+        .await
+        .map_err(|e| format!("Erreur lors de la mise a jour: {}", e))?;
+
+    if result.matched_count == 0 {
+        Err("Aucun symbole accessoire trouve avec cet identifiant".to_string())
+    } else if result.modified_count > 0 {
+        Ok("Symbole accessoire mis a jour avec succes".to_string())
     } else {
-        Err("Aucun symbole accessoire trouvé avec cet identifiant".to_string())
+        Ok("Aucune modification detectee (valeurs identiques)".to_string())
     }
 }
 
