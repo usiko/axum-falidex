@@ -1,4 +1,4 @@
-use super::model::SymboleReq;
+use super::model::{SymboleCreateReq, SymboleUpdateReq};
 use crate::{db::falidex::symbole, routes::users::AppClaims, state::AppState};
 use axum::http::status::StatusCode;
 use axum::{
@@ -23,7 +23,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
 pub async fn create(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
-    Json(payload): Json<SymboleReq>,
+    Json(payload): Json<SymboleCreateReq>,
 ) -> Response {
     let user_id = token.sub;
     let symbole = payload.into();
@@ -51,7 +51,7 @@ pub async fn update(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<SymboleReq>,
+    Json(payload): Json<SymboleUpdateReq>,
 ) -> Response {
     let user_id = token.sub;
     let symbole = payload.into();

@@ -1,4 +1,4 @@
-use super::model::ColorReq;
+use super::model::{ColorCreateReq, ColorUpdateReq};
 use crate::routes::users::AppClaims;
 use crate::{db::falidex::color, state::AppState};
 use axum::http::status::StatusCode;
@@ -24,7 +24,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
 pub async fn create(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
-    Json(payload): Json<ColorReq>,
+    Json(payload): Json<ColorCreateReq>,
 ) -> Response {
     let user_id = token.sub;
     let color = payload.into();
@@ -52,7 +52,7 @@ pub async fn update(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<ColorReq>,
+    Json(payload): Json<ColorUpdateReq>,
 ) -> Response {
     let user_id = token.sub;
     let color = payload.into();

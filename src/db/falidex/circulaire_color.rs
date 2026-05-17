@@ -1,8 +1,10 @@
 use crate::model::falidex_model::{
-    CirculaireColor, CreateCirculaireColor, LinkDetail, OccurenceDetail,
+    CirculaireColor, CreateCirculaireColor, LinkDetail, OccurenceDetail, UpdateCirculaireColor,
 };
 use futures::stream::TryStreamExt;
+use mongodb::bson;
 use mongodb::{Collection, Database, bson::doc};
+use super::update_helper;
 
 pub async fn get(db: &Database) -> Result<Vec<CirculaireColor>, String> {
     let col: Collection<CirculaireColor> = db.collection::<CirculaireColor>("circulaires-colors");
@@ -39,7 +41,7 @@ pub async fn update(
     db: &Database,
     user_id: String,
     id: String,
-    data: CirculaireColor,
+    data: UpdateCirculaireColor,
 ) -> Result<String, String> {
     let _ = crate::db::log::add(
         db,
@@ -48,15 +50,25 @@ pub async fn update(
     )
     .await;
     let col: Collection<CirculaireColor> = db.collection::<CirculaireColor>("circulaires-colors");
-    let result = col
-        .replace_one(doc! { "_id": id }, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
-    if result.modified_count > 0 {
-        Ok("CirculaireColor mise à jour avec succès".to_string())
+    let mut update_doc = doc! {};
+    if let Some(circulaire_id) = data.circulaire_id {
+        update_doc.insert("circulaireId", circulaire_id);
+    }
+    if let Some(color_ids) = data.color_ids {
+        let color_ids_bson = bson::to_bson(&color_ids)
+            .map_err(|e| format!("Erreur lors de la serialisation des color_ids: {}", e))?;
+        update_doc.insert("colorIds", color_ids_bson);
+    }
+
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucune circulaire color trouvee avec cet identifiant".to_string())
+    } else if modified > 0 {
+        Ok("CirculaireColor mise a jour avec succes".to_string())
     } else {
-        Err("Aucune circulaire color trouvée avec cet identifiant".to_string())
+        Ok("Aucune modification detectee (valeurs identiques)".to_string())
     }
 }
 

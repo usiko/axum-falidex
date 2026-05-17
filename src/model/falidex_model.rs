@@ -34,6 +34,14 @@ pub struct CreateCirculaire {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct UpdateCirculaire {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matiere: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Color {
     #[serde(
         rename(deserialize = "_id", serialize = "id"),
@@ -55,6 +63,14 @@ pub struct CreateColor {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct UpdateColor {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(rename = "colorData", skip_serializing_if = "Option::is_none")]
+    pub color_data: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Filiere {
     pub name: String,
     #[serde(
@@ -69,6 +85,12 @@ pub struct CreateFiliere {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct UpdateFiliere {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -89,6 +111,12 @@ pub struct CreatePlacement {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct UpdatePlacement {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Position {
     pub name: String,
     #[serde(
@@ -103,6 +131,12 @@ pub struct CreatePosition {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct UpdatePosition {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -123,6 +157,12 @@ pub struct CreateSignification {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct UpdateSignification {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct SymboleAccessoire {
     pub name: String,
     #[serde(
@@ -140,6 +180,12 @@ pub struct CreateSymboleAccessoire {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct UpdateSymboleAccessoire {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct SymboleSens {
     pub name: String,
     #[serde(
@@ -154,6 +200,12 @@ pub struct CreateSymboleSens {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct UpdateSymboleSens {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -184,6 +236,14 @@ pub struct CreateSymbole {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct UpdateSymbole {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imgs: Option<Vec<Img>>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct CirculaireColor {
     #[serde(
         rename(deserialize = "_id", serialize = "id"),
@@ -204,6 +264,14 @@ pub struct CreateCirculaireColor {
     pub circulaire_id: String,
     #[serde(rename = "colorIds")]
     pub color_ids: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct UpdateCirculaireColor {
+    #[serde(rename = "circulaireId", skip_serializing_if = "Option::is_none")]
+    pub circulaire_id: Option<String>,
+    #[serde(rename = "colorIds", skip_serializing_if = "Option::is_none")]
+    pub color_ids: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -290,6 +358,32 @@ pub struct CreateLinkDetail {
     pub name: String,
     pub relations: Vec<LinkItem>,
     pub specificites: Vec<Specificite>,
+    #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(rename = "lastUpdate", skip_serializing_if = "Option::is_none")]
+    pub last_update: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annee: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub editable: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub national: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ville: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct UpdateLinkDetail {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relations: Option<Vec<LinkItem>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub specificites: Option<Vec<Specificite>>,
     #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
     #[serde(rename = "lastUpdate", skip_serializing_if = "Option::is_none")]

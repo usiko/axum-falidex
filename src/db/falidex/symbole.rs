@@ -1,6 +1,10 @@
-use crate::model::falidex_model::{CreateSymbole, LinkDetail, OccurenceDetail, Symbole};
+use super::update_helper;
+use crate::model::falidex_model::{
+    CreateSymbole, LinkDetail, OccurenceDetail, Symbole, UpdateSymbole,
+};
 use futures::stream::TryStreamExt;
-use mongodb::{bson::doc, Collection, Database};
+use mongodb::bson;
+use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<Symbole>, String> {
     let col: Collection<Symbole> = db.collection::<Symbole>("symboles");
@@ -23,26 +27,51 @@ pub async fn create(db: &Database, user_id: String, data: CreateSymbole) -> Resu
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, user_id: String, id: String, data: Symbole) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole][update] id: {}", id)).await;
+pub async fn update(
+    db: &Database,
+    user_id: String,
+    id: String,
+    data: UpdateSymbole,
+) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][symbole][update] id: {}", id),
+    )
+    .await;
     let col: Collection<Symbole> = db.collection::<Symbole>("symboles");
-    let result = col
-        .replace_one(doc! { "_id": id }, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
-    if result.modified_count > 0 {
+    let mut update_doc = doc! {};
+    if let Some(name) = data.name {
+        update_doc.insert("name", name);
+    }
+    if let Some(imgs) = data.imgs {
+        let imgs_bson = bson::to_bson(&imgs)
+            .map_err(|e| format!("Erreur lors de la sérialisation des images: {}", e))?;
+        update_doc.insert("imgs", imgs_bson);
+    }
+
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucun symbole trouvé avec cet identifiant".to_string())
+    } else if modified > 0 {
         Ok("Symbole mis à jour avec succès".to_string())
     } else {
-        Err("Aucun symbole trouvé avec cet identifiant".to_string())
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
     }
 }
 
 pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole][delete] id: {}", id)).await;
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][symbole][delete] id: {}", id),
+    )
+    .await;
     // Vérifier les occurrences dans les relations
     let occurences = get_occurences(db, id.clone()).await?;
-    
+
     if !occurences.is_empty() {
         let total_items: u64 = occurences.iter().map(|o| o.items).sum();
         return Err(format!(

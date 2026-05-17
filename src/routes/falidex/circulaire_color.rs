@@ -1,5 +1,5 @@
 use crate::{db::falidex::circulaire_color, state::AppState};
-use super::model::CirculaireColorReq;
+use super::model::{CirculaireColorCreateReq, CirculaireColorUpdateReq};
 use axum::{
     Json,
     extract::{Path, State},
@@ -24,7 +24,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
 pub async fn create(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
-    Json(payload): Json<CirculaireColorReq>,
+    Json(payload): Json<CirculaireColorCreateReq>,
 ) -> Response {
     let user_id = token.sub;
     let circulaire_color = payload.into();
@@ -52,7 +52,7 @@ pub async fn update(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<CirculaireColorReq>,
+    Json(payload): Json<CirculaireColorUpdateReq>,
 ) -> Response {
     let user_id = token.sub;
     let circulaire_color = payload.into();

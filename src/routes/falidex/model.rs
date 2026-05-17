@@ -5,27 +5,15 @@ use uuid::Uuid;
 // Modèles de route pour les requêtes API (utilisent 'id' au lieu de '_id')
 
 #[derive(Deserialize, Serialize)]
-pub struct CirculaireReq {
+pub struct CirculaireCreateReq {
     pub matiere: String,
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
 }
 
-impl From<CirculaireReq> for falidex_model::Circulaire {
-    fn from(req: CirculaireReq) -> Self {
-        falidex_model::Circulaire {
-            matiere: req.matiere,
-            name: req.name,
-            id: req.id.unwrap_or_default(),
-        }
-    }
-}
-
-impl From<CirculaireReq> for falidex_model::CreateCirculaire {
-    fn from(req: CirculaireReq) -> Self {
+impl From<CirculaireCreateReq> for falidex_model::CreateCirculaire {
+    fn from(req: CirculaireCreateReq) -> Self {
         falidex_model::CreateCirculaire {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             matiere: req.matiere,
             name: req.name,
         }
@@ -33,27 +21,33 @@ impl From<CirculaireReq> for falidex_model::CreateCirculaire {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct ColorReq {
-    pub id: Option<String>,
+pub struct CirculaireUpdateReq {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matiere: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl From<CirculaireUpdateReq> for falidex_model::UpdateCirculaire {
+    fn from(req: CirculaireUpdateReq) -> Self {
+        falidex_model::UpdateCirculaire {
+            matiere: req.matiere,
+            name: req.name,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ColorCreateReq {
     pub name: String,
     #[serde(rename = "colorData")]
     pub color_data: String,
 }
 
-impl From<ColorReq> for falidex_model::Color {
-    fn from(req: ColorReq) -> Self {
-        falidex_model::Color {
-            id: req.id.unwrap_or_default(),
-            name: req.name,
-            color_data: req.color_data,
-        }
-    }
-}
-
-impl From<ColorReq> for falidex_model::CreateColor {
-    fn from(req: ColorReq) -> Self {
+impl From<ColorCreateReq> for falidex_model::CreateColor {
+    fn from(req: ColorCreateReq) -> Self {
         falidex_model::CreateColor {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             name: req.name,
             color_data: req.color_data,
         }
@@ -61,178 +55,191 @@ impl From<ColorReq> for falidex_model::CreateColor {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct FiliereReq {
-    pub name: String,
+pub struct ColorUpdateReq {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
+    pub name: Option<String>,
+    #[serde(rename = "colorData", skip_serializing_if = "Option::is_none")]
+    pub color_data: Option<String>,
 }
 
-impl From<FiliereReq> for falidex_model::Filiere {
-    fn from(req: FiliereReq) -> Self {
-        falidex_model::Filiere {
+impl From<ColorUpdateReq> for falidex_model::UpdateColor {
+    fn from(req: ColorUpdateReq) -> Self {
+        falidex_model::UpdateColor {
             name: req.name,
-            id: req.id.unwrap_or_default(),
+            color_data: req.color_data,
         }
     }
 }
 
-impl From<FiliereReq> for falidex_model::CreateFiliere {
-    fn from(req: FiliereReq) -> Self {
+#[derive(Deserialize, Serialize)]
+pub struct FiliereCreateReq {
+    pub name: String,
+}
+
+impl From<FiliereCreateReq> for falidex_model::CreateFiliere {
+    fn from(req: FiliereCreateReq) -> Self {
         falidex_model::CreateFiliere {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             name: req.name,
         }
     }
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct PlacementReq {
-    pub name: String,
+pub struct FiliereUpdateReq {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
+    pub name: Option<String>,
 }
 
-impl From<PlacementReq> for falidex_model::Placement {
-    fn from(req: PlacementReq) -> Self {
-        falidex_model::Placement {
-            name: req.name,
-            id: req.id.unwrap_or_default(),
-        }
+impl From<FiliereUpdateReq> for falidex_model::UpdateFiliere {
+    fn from(req: FiliereUpdateReq) -> Self {
+        falidex_model::UpdateFiliere { name: req.name }
     }
 }
 
-impl From<PlacementReq> for falidex_model::CreatePlacement {
-    fn from(req: PlacementReq) -> Self {
+#[derive(Deserialize, Serialize)]
+pub struct PlacementCreateReq {
+    pub name: String,
+}
+
+impl From<PlacementCreateReq> for falidex_model::CreatePlacement {
+    fn from(req: PlacementCreateReq) -> Self {
         falidex_model::CreatePlacement {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             name: req.name,
         }
     }
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct PositionReq {
-    pub name: String,
+pub struct PlacementUpdateReq {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
+    pub name: Option<String>,
 }
 
-impl From<PositionReq> for falidex_model::Position {
-    fn from(req: PositionReq) -> Self {
-        falidex_model::Position {
-            name: req.name,
-            id: req.id.unwrap_or_default(),
-        }
+impl From<PlacementUpdateReq> for falidex_model::UpdatePlacement {
+    fn from(req: PlacementUpdateReq) -> Self {
+        falidex_model::UpdatePlacement { name: req.name }
     }
 }
 
-impl From<PositionReq> for falidex_model::CreatePosition {
-    fn from(req: PositionReq) -> Self {
+#[derive(Deserialize, Serialize)]
+pub struct PositionCreateReq {
+    pub name: String,
+}
+
+impl From<PositionCreateReq> for falidex_model::CreatePosition {
+    fn from(req: PositionCreateReq) -> Self {
         falidex_model::CreatePosition {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             name: req.name,
         }
     }
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct SignificationReq {
+pub struct PositionUpdateReq {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl From<PositionUpdateReq> for falidex_model::UpdatePosition {
+    fn from(req: PositionUpdateReq) -> Self {
+        falidex_model::UpdatePosition { name: req.name }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct SignificationCreateReq {
     pub content: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
 }
 
-impl From<SignificationReq> for falidex_model::Signification {
-    fn from(req: SignificationReq) -> Self {
-        falidex_model::Signification {
-            content: req.content,
-            id: req.id.unwrap_or_default(),
-        }
-    }
-}
-
-impl From<SignificationReq> for falidex_model::CreateSignification {
-    fn from(req: SignificationReq) -> Self {
+impl From<SignificationCreateReq> for falidex_model::CreateSignification {
+    fn from(req: SignificationCreateReq) -> Self {
         falidex_model::CreateSignification {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             content: req.content,
         }
     }
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct SymboleAccessoireReq {
-    pub name: String,
+pub struct SignificationUpdateReq {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
+    pub content: Option<String>,
 }
 
-impl From<SymboleAccessoireReq> for falidex_model::SymboleAccessoire {
-    fn from(req: SymboleAccessoireReq) -> Self {
-        falidex_model::SymboleAccessoire {
-            name: req.name,
-            id: req.id.unwrap_or_default(),
+impl From<SignificationUpdateReq> for falidex_model::UpdateSignification {
+    fn from(req: SignificationUpdateReq) -> Self {
+        falidex_model::UpdateSignification {
+            content: req.content,
         }
     }
 }
 
-impl From<SymboleAccessoireReq> for falidex_model::CreateSymboleAccessoire {
-    fn from(req: SymboleAccessoireReq) -> Self {
+#[derive(Deserialize, Serialize)]
+pub struct SymboleAccessoireCreateReq {
+    pub name: String,
+}
+
+impl From<SymboleAccessoireCreateReq> for falidex_model::CreateSymboleAccessoire {
+    fn from(req: SymboleAccessoireCreateReq) -> Self {
         falidex_model::CreateSymboleAccessoire {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             name: req.name,
         }
     }
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct SymboleSensReq {
-    pub name: String,
+pub struct SymboleAccessoireUpdateReq {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
+    pub name: Option<String>,
 }
 
-impl From<SymboleSensReq> for falidex_model::SymboleSens {
-    fn from(req: SymboleSensReq) -> Self {
-        falidex_model::SymboleSens {
-            name: req.name,
-            id: req.id.unwrap_or_default(),
-        }
+impl From<SymboleAccessoireUpdateReq> for falidex_model::UpdateSymboleAccessoire {
+    fn from(req: SymboleAccessoireUpdateReq) -> Self {
+        falidex_model::UpdateSymboleAccessoire { name: req.name }
     }
 }
 
-impl From<SymboleSensReq> for falidex_model::CreateSymboleSens {
-    fn from(req: SymboleSensReq) -> Self {
+#[derive(Deserialize, Serialize)]
+pub struct SymboleSensCreateReq {
+    pub name: String,
+}
+
+impl From<SymboleSensCreateReq> for falidex_model::CreateSymboleSens {
+    fn from(req: SymboleSensCreateReq) -> Self {
         falidex_model::CreateSymboleSens {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             name: req.name,
         }
     }
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct SymboleReq {
-    pub name: String,
+pub struct SymboleSensUpdateReq {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
+    pub name: Option<String>,
+}
+
+impl From<SymboleSensUpdateReq> for falidex_model::UpdateSymboleSens {
+    fn from(req: SymboleSensUpdateReq) -> Self {
+        falidex_model::UpdateSymboleSens { name: req.name }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct SymboleCreateReq {
+    pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub imgs: Option<Vec<falidex_model::Img>>,
 }
 
-impl From<SymboleReq> for falidex_model::Symbole {
-    fn from(req: SymboleReq) -> Self {
-        falidex_model::Symbole {
-            name: req.name,
-            id: req.id.unwrap_or_default(),
-            imgs: req.imgs,
-        }
-    }
-}
-
-impl From<SymboleReq> for falidex_model::CreateSymbole {
-    fn from(req: SymboleReq) -> Self {
+impl From<SymboleCreateReq> for falidex_model::CreateSymbole {
+    fn from(req: SymboleCreateReq) -> Self {
         falidex_model::CreateSymbole {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+            id: Uuid::new_v4().to_string(),
             name: req.name,
             imgs: req.imgs,
         }
@@ -240,29 +247,51 @@ impl From<SymboleReq> for falidex_model::CreateSymbole {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct CirculaireColorReq {
+pub struct SymboleUpdateReq {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(rename = "circulaireId")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imgs: Option<Vec<falidex_model::Img>>,
+}
+
+impl From<SymboleUpdateReq> for falidex_model::UpdateSymbole {
+    fn from(req: SymboleUpdateReq) -> Self {
+        falidex_model::UpdateSymbole {
+            name: req.name,
+            imgs: req.imgs,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CirculaireColorCreateReq {
     pub circulaire_id: String,
     #[serde(rename = "colorIds")]
     pub color_ids: Vec<String>,
 }
 
-impl From<CirculaireColorReq> for falidex_model::CirculaireColor {
-    fn from(req: CirculaireColorReq) -> Self {
-        falidex_model::CirculaireColor {
-            id: req.id.unwrap_or_default(),
+impl From<CirculaireColorCreateReq> for falidex_model::CreateCirculaireColor {
+    fn from(req: CirculaireColorCreateReq) -> Self {
+        falidex_model::CreateCirculaireColor {
+            id: Uuid::new_v4().to_string(),
             circulaire_id: req.circulaire_id,
             color_ids: req.color_ids,
         }
     }
 }
 
-impl From<CirculaireColorReq> for falidex_model::CreateCirculaireColor {
-    fn from(req: CirculaireColorReq) -> Self {
-        falidex_model::CreateCirculaireColor {
-            id: req.id.unwrap_or_else(|| Uuid::new_v4().to_string()),
+#[derive(Deserialize, Serialize)]
+pub struct CirculaireColorUpdateReq {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "circulaireId")]
+    pub circulaire_id: Option<String>,
+    #[serde(rename = "colorIds", skip_serializing_if = "Option::is_none")]
+    pub color_ids: Option<Vec<String>>,
+}
+
+impl From<CirculaireColorUpdateReq> for falidex_model::UpdateCirculaireColor {
+    fn from(req: CirculaireColorUpdateReq) -> Self {
+        falidex_model::UpdateCirculaireColor {
             circulaire_id: req.circulaire_id,
             color_ids: req.color_ids,
         }

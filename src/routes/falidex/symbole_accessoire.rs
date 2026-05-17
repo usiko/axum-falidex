@@ -1,5 +1,5 @@
 use crate::{db::falidex::symbole_accessoire, state::AppState};
-use super::model::SymboleAccessoireReq;
+use super::model::{SymboleAccessoireCreateReq, SymboleAccessoireUpdateReq};
 use axum::{
     Json,
     extract::{Path, State},
@@ -24,7 +24,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
 pub async fn create(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
-    Json(payload): Json<SymboleAccessoireReq>,
+    Json(payload): Json<SymboleAccessoireCreateReq>,
 ) -> Response {
     let user_id = token.sub;
     let symbole_accessoire = payload.into();
@@ -52,7 +52,7 @@ pub async fn update(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<SymboleAccessoireReq>,
+    Json(payload): Json<SymboleAccessoireUpdateReq>,
 ) -> Response {
     let user_id = token.sub;
     let symbole_accessoire = payload.into();

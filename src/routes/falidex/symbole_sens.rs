@@ -1,5 +1,5 @@
 use crate::{db::falidex::symbole_sens, state::AppState};
-use super::model::SymboleSensReq;
+use super::model::{SymboleSensCreateReq, SymboleSensUpdateReq};
 use axum::{
     Json,
     extract::{Path, State},
@@ -24,7 +24,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
 pub async fn create(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
-    Json(payload): Json<SymboleSensReq>,
+    Json(payload): Json<SymboleSensCreateReq>,
 ) -> Response {
     let user_id = token.sub;
     let symbole_sens = payload.into();
@@ -52,7 +52,7 @@ pub async fn update(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<SymboleSensReq>,
+    Json(payload): Json<SymboleSensUpdateReq>,
 ) -> Response {
     let user_id = token.sub;
     let symbole_sens = payload.into();

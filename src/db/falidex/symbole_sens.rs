@@ -1,5 +1,9 @@
-use crate::model::falidex_model::{CreateSymboleSens, LinkDetail, OccurenceDetail, SymboleSens};
+use super::update_helper;
+use crate::model::falidex_model::{
+    CreateSymboleSens, LinkDetail, OccurenceDetail, SymboleSens, UpdateSymboleSens,
+};
 use futures::stream::TryStreamExt;
+use mongodb::bson;
 use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<SymboleSens>, String> {
@@ -14,13 +18,12 @@ pub async fn get(db: &Database) -> Result<Vec<SymboleSens>, String> {
     Ok(symboles_sens)
 }
 
-pub async fn create(db: &Database, user_id: String, data: CreateSymboleSens) -> Result<String, String> {
-    let _ = crate::db::log::add(
-        db,
-        user_id,
-        "[falidex][symbole_sens][create]".to_string(),
-    )
-    .await;
+pub async fn create(
+    db: &Database,
+    user_id: String,
+    data: CreateSymboleSens,
+) -> Result<String, String> {
+    let _ = crate::db::log::add(db, user_id, "[falidex][symbole_sens][create]".to_string()).await;
     let col: Collection<CreateSymboleSens> = db.collection::<CreateSymboleSens>("symboles-sens");
     col.insert_one(data)
         .await
@@ -28,7 +31,12 @@ pub async fn create(db: &Database, user_id: String, data: CreateSymboleSens) -> 
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, user_id: String, id: String, data: SymboleSens) -> Result<String, String> {
+pub async fn update(
+    db: &Database,
+    user_id: String,
+    id: String,
+    data: UpdateSymboleSens,
+) -> Result<String, String> {
     let _ = crate::db::log::add(
         db,
         user_id,
@@ -36,15 +44,20 @@ pub async fn update(db: &Database, user_id: String, id: String, data: SymboleSen
     )
     .await;
     let col: Collection<SymboleSens> = db.collection::<SymboleSens>("symboles-sens");
-    let result = col
-        .replace_one(doc! { "_id": id }, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
-    if result.modified_count > 0 {
+    let mut update_doc = doc! {};
+    if let Some(name) = data.name {
+        update_doc.insert("name", name);
+    }
+
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucun symbole sens trouvé avec cet identifiant".to_string())
+    } else if modified > 0 {
         Ok("Symbole sens mis à jour avec succès".to_string())
     } else {
-        Err("Aucun symbole sens trouvé avec cet identifiant".to_string())
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
     }
 }
 

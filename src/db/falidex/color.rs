@@ -1,6 +1,10 @@
-use crate::model::falidex_model::{CirculaireColor, Color, CreateColor, OccurenceDetail};
+use crate::model::falidex_model::{
+    CirculaireColor, Color, CreateColor, OccurenceDetail, UpdateColor,
+};
 use futures::stream::TryStreamExt;
+use mongodb::bson;
 use mongodb::{Collection, Database, bson::doc};
+use super::update_helper;
 
 pub async fn get(db: &Database) -> Result<Vec<Color>, String> {
     let col: Collection<Color> = db.collection::<Color>("colors");
@@ -22,18 +26,36 @@ pub async fn create(db: &Database, user_id: String, data: CreateColor) -> Result
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, user_id: String, id: String, data: Color) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][color][update] id: {}", id)).await;
+pub async fn update(
+    db: &Database,
+    user_id: String,
+    id: String,
+    data: UpdateColor,
+) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][color][update] id: {}", id),
+    )
+    .await;
     let col: Collection<Color> = db.collection::<Color>("colors");
-    let result = col
-        .replace_one(doc! { "_id": id }, data)
-        .await
-        .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
-    if result.modified_count > 0 {
+    let mut update_doc = doc! {};
+    if let Some(name) = data.name {
+        update_doc.insert("name", name);
+    }
+    if let Some(color_data) = data.color_data {
+        update_doc.insert("colorData", color_data);
+    }
+
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucune color trouvée avec cet identifiant".to_string())
+    } else if modified > 0 {
         Ok("Color mise à jour avec succès".to_string())
     } else {
-        Err("Aucune color trouvée avec cet identifiant".to_string())
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
     }
 }
 
