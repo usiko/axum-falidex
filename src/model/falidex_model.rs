@@ -184,6 +184,14 @@ pub struct CreateSymbole {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct UpdateSymbole {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imgs: Option<Vec<Img>>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct CirculaireColor {
     #[serde(
         rename(deserialize = "_id", serialize = "id"),

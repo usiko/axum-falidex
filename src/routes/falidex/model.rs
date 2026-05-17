@@ -239,6 +239,15 @@ impl From<SymboleReq> for falidex_model::CreateSymbole {
     }
 }
 
+impl From<SymboleReq> for falidex_model::UpdateSymbole {
+    fn from(req: SymboleReq) -> Self {
+        falidex_model::UpdateSymbole {
+            name: Some(req.name),
+            imgs: req.imgs,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct CirculaireColorReq {
     #[serde(skip_serializing_if = "Option::is_none")]

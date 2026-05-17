@@ -1,6 +1,9 @@
-use crate::model::falidex_model::{CreateSymbole, LinkDetail, OccurenceDetail, Symbole};
+use crate::model::falidex_model::{
+    CreateSymbole, LinkDetail, OccurenceDetail, Symbole, UpdateSymbole,
+};
 use futures::stream::TryStreamExt;
-use mongodb::{bson::doc, Collection, Database};
+use mongodb::bson;
+use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<Symbole>, String> {
     let col: Collection<Symbole> = db.collection::<Symbole>("symboles");
@@ -23,11 +26,36 @@ pub async fn create(db: &Database, user_id: String, data: CreateSymbole) -> Resu
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, user_id: String, id: String, data: Symbole) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole][update] id: {}", id)).await;
+pub async fn update(
+    db: &Database,
+    user_id: String,
+    id: String,
+    data: UpdateSymbole,
+) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][symbole][update] id: {}", id),
+    )
+    .await;
     let col: Collection<Symbole> = db.collection::<Symbole>("symboles");
+
+    let mut update_doc = doc! {};
+    if let Some(name) = data.name {
+        update_doc.insert("name", name);
+    }
+    if let Some(imgs) = data.imgs {
+        let imgs_bson = bson::to_bson(&imgs)
+            .map_err(|e| format!("Erreur lors de la sérialisation des images: {}", e))?;
+        update_doc.insert("imgs", imgs_bson);
+    }
+
+    if update_doc.is_empty() {
+        return Err("Aucun champ à mettre à jour".to_string());
+    }
+
     let result = col
-        .replace_one(doc! { "_id": id }, data)
+        .update_one(doc! { "_id": id }, doc! { "$set": update_doc })
         .await
         .map_err(|e| format!("Erreur lors de la mise à jour: {}", e))?;
 
@@ -39,10 +67,15 @@ pub async fn update(db: &Database, user_id: String, id: String, data: Symbole) -
 }
 
 pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole][delete] id: {}", id)).await;
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][symbole][delete] id: {}", id),
+    )
+    .await;
     // Vérifier les occurrences dans les relations
     let occurences = get_occurences(db, id.clone()).await?;
-    
+
     if !occurences.is_empty() {
         let total_items: u64 = occurences.iter().map(|o| o.items).sum();
         return Err(format!(
