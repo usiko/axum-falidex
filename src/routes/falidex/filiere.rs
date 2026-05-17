@@ -1,5 +1,5 @@
 use crate::{db::falidex::filiere, state::AppState};
-use super::model::FiliereReq;
+use super::model::{FiliereCreateReq, FiliereUpdateReq};
 use axum::{
     Json,
     extract::{Path, State},
@@ -24,7 +24,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
 pub async fn create(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
-    Json(payload): Json<FiliereReq>,
+    Json(payload): Json<FiliereCreateReq>,
 ) -> Response {
     let user_id = token.sub;
     let filiere = payload.into();
@@ -52,7 +52,7 @@ pub async fn update(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<FiliereReq>,
+    Json(payload): Json<FiliereUpdateReq>,
 ) -> Response {
     let user_id = token.sub;
     let filiere = payload.into();

@@ -1,4 +1,4 @@
-use super::model::CirculaireReq;
+use super::model::{CirculaireCreateReq, CirculaireUpdateReq};
 use crate::{db::falidex::circulaire, state::AppState};
 use axum::http::status::StatusCode;
 use axum::{
@@ -24,7 +24,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
 pub async fn create(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
-    Json(payload): Json<CirculaireReq>,
+    Json(payload): Json<CirculaireCreateReq>,
 ) -> Response {
     let user_id = token.sub;
     let circulaire = payload.into();
@@ -52,7 +52,7 @@ pub async fn update(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<CirculaireReq>,
+    Json(payload): Json<CirculaireUpdateReq>,
 ) -> Response {
     let user_id = token.sub;
     let circulaire = payload.into();

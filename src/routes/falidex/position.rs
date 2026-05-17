@@ -1,5 +1,5 @@
 use crate::{db::falidex::position, state::AppState};
-use super::model::PositionReq;
+use super::model::{PositionCreateReq, PositionUpdateReq};
 use axum::{
     Json,
     extract::{Path, State},
@@ -24,7 +24,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
 pub async fn create(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
-    Json(payload): Json<PositionReq>,
+    Json(payload): Json<PositionCreateReq>,
 ) -> Response {
     let user_id = token.sub;
     let position = payload.into();
@@ -52,7 +52,7 @@ pub async fn update(
     Claims(token): Claims<AppClaims>,
     State(state): State<AppState>,
     Path(id): Path<String>,
-    Json(payload): Json<PositionReq>,
+    Json(payload): Json<PositionUpdateReq>,
 ) -> Response {
     let user_id = token.sub;
     let position = payload.into();

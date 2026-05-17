@@ -1,11 +1,15 @@
-use crate::model::falidex_model::{CreateSymboleAccessoire, LinkDetail, OccurenceDetail, SymboleAccessoire, UpdateSymboleAccessoire};
+use super::update_helper;
+use crate::model::falidex_model::{
+    CreateSymboleAccessoire, LinkDetail, OccurenceDetail, SymboleAccessoire,
+    UpdateSymboleAccessoire,
+};
 use futures::stream::TryStreamExt;
 use mongodb::bson;
-use mongodb::{bson::doc, Collection, Database};
-use super::update_helper;
+use mongodb::{Collection, Database, bson::doc};
 
 pub async fn get(db: &Database) -> Result<Vec<SymboleAccessoire>, String> {
-    let col: Collection<SymboleAccessoire> = db.collection::<SymboleAccessoire>("symboles-accessories");
+    let col: Collection<SymboleAccessoire> =
+        db.collection::<SymboleAccessoire>("symboles-accessories");
     let symbole_accessoires: Vec<SymboleAccessoire> = col
         .find(doc! {})
         .await
@@ -16,47 +20,66 @@ pub async fn get(db: &Database) -> Result<Vec<SymboleAccessoire>, String> {
     Ok(symbole_accessoires)
 }
 
-pub async fn create(db: &Database, user_id: String, data: CreateSymboleAccessoire) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, "[falidex][symbole_accessoire][create]".to_string()).await;
-    let col: Collection<CreateSymboleAccessoire> = db.collection::<CreateSymboleAccessoire>("symboles-accessories");
+pub async fn create(
+    db: &Database,
+    user_id: String,
+    data: CreateSymboleAccessoire,
+) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        "[falidex][symbole_accessoire][create]".to_string(),
+    )
+    .await;
+    let col: Collection<CreateSymboleAccessoire> =
+        db.collection::<CreateSymboleAccessoire>("symboles-accessories");
     col.insert_one(data)
         .await
         .map(|_| "Symbole accessoire créé avec succès".to_string())
         .map_err(|e| format!("Erreur lors de la création: {}", e))
 }
 
-pub async fn update(db: &Database, user_id: String, id: String, data: UpdateSymboleAccessoire) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole_accessoire][update] id: {}", id)).await;
-    let col: Collection<SymboleAccessoire> = db.collection::<SymboleAccessoire>("symboles-accessories");
+pub async fn update(
+    db: &Database,
+    user_id: String,
+    id: String,
+    data: UpdateSymboleAccessoire,
+) -> Result<String, String> {
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][symbole_accessoire][update] id: {}", id),
+    )
+    .await;
+    let col: Collection<SymboleAccessoire> =
+        db.collection::<SymboleAccessoire>("symboles-accessories");
 
     let mut update_doc = doc! {};
     if let Some(name) = data.name {
         update_doc.insert("name", name);
     }
 
-    if update_doc.is_empty() {
-        return Err("Aucun champ a mettre a jour".to_string());
-    }
+    let (matched, modified) = update_helper::partial_update(&col, &id, update_doc).await?;
 
-    let result = col
-        .update_one(doc! { "_id": id }, doc! { "$set": update_doc })
-        .await
-        .map_err(|e| format!("Erreur lors de la mise a jour: {}", e))?;
-
-    if result.matched_count == 0 {
-        Err("Aucun symbole accessoire trouve avec cet identifiant".to_string())
-    } else if result.modified_count > 0 {
-        Ok("Symbole accessoire mis a jour avec succes".to_string())
+    if matched == 0 {
+        Err("Aucun symbole accessoire trouvé avec cet identifiant".to_string())
+    } else if modified > 0 {
+        Ok("Symbole accessoire mis à jour avec succès".to_string())
     } else {
-        Ok("Aucune modification detectee (valeurs identiques)".to_string())
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
     }
 }
 
 pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String, String> {
-    let _ = crate::db::log::add(db, user_id, format!("[falidex][symbole_accessoire][delete] id: {}", id)).await;
+    let _ = crate::db::log::add(
+        db,
+        user_id,
+        format!("[falidex][symbole_accessoire][delete] id: {}", id),
+    )
+    .await;
     // Vérifier les occurrences dans les relations
     let occurences = get_occurences(db, id.clone()).await?;
-    
+
     if !occurences.is_empty() {
         let total_items: u64 = occurences.iter().map(|o| o.items).sum();
         return Err(format!(
@@ -66,7 +89,8 @@ pub async fn delete(db: &Database, user_id: String, id: String) -> Result<String
         ));
     }
 
-    let col: Collection<SymboleAccessoire> = db.collection::<SymboleAccessoire>("symboles-accessories");
+    let col: Collection<SymboleAccessoire> =
+        db.collection::<SymboleAccessoire>("symboles-accessories");
     let result = col
         .delete_one(doc! { "_id": id })
         .await
