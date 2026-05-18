@@ -36,31 +36,13 @@ async fn main() {
     }
 
     let allowed_origins = crate::env::get_allowed_origins();
-    let cors = if allowed_origins == "*" {
-        CorsLayer::new()
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
-            .allow_origin(Any)
-    } else {
-        CorsLayer::new()
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
-            .allow_origin(allowed_origins.parse::<axum::http::HeaderValue>().unwrap())
-    };
+    let cors = get_cors();
     let free = Router::new()
         .route("/token", post(verify_hash))
+        .route(
+            "/collection/symboles/{id}/upload",
+            post(falidex::symbole::get_occurences),
+        )
         .with_state(app_state.clone())
         .layer(cors.clone());
 
@@ -296,4 +278,30 @@ async fn get_current_weather() -> Result<String, reqwest::Error> {
     println!("{}", body);
 
     Ok(body)
+}
+
+fn get_cors() -> CorsLayer {
+    if allowed_origins == "*" {
+        CorsLayer::new()
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
+            .allow_origin(Any)
+    } else {
+        CorsLayer::new()
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
+            .allow_origin(allowed_origins.parse::<axum::http::HeaderValue>().unwrap())
+    }
 }
