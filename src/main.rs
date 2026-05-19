@@ -3,6 +3,7 @@ mod encrypt;
 mod env;
 mod middleware;
 mod model;
+mod resources;
 mod routes;
 mod state;
 mod token;

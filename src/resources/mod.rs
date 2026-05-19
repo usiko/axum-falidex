@@ -1,1 +1,1 @@
-pub mod cloudynary;
+pub mod cloudinary;
