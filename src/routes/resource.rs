@@ -27,4 +27,6 @@ pub async fn upload_resource_picture(
     // ajouter les ids aux symbole concernés
     // return message success ou non
     //Json(urls).into_response()
+
+    //ne pas update la bdd et faire plutot un dossie par symbole id!!
 }
