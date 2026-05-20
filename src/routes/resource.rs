@@ -1,4 +1,4 @@
-use crate::resources::{self, cloudinary::upload_picture};
+use crate::resources::cloudinary::upload_picture;
 use axum::extract::Multipart;
 use axum::extract::Path;
 

@@ -41,7 +41,7 @@ async fn main() {
     let free = Router::new()
         .route("/token", post(verify_hash))
         .route(
-            "/collection/symboles/{id}/upload",
+            "/collection/symboles/{id}/img/upload",
             post(upload_resource_picture),
         )
         .with_state(app_state.clone())
