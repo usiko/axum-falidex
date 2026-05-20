@@ -1,12 +1,12 @@
 use crate::resources::{self, cloudinary::upload_picture};
-use axum::{Router, extract::Multipart, routing::post};
-use resources::cloudinary;
+use axum::extract::Multipart;
+use axum::extract::Path;
 
-pub async fn upload_resource_picture(mut multipart: Multipart, Path(user_id): Path<String>) {
+pub async fn upload_resource_picture(Path(user_id): Path<String>, mut multipart: Multipart) {
     while let Some(mut field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap().to_string();
-        let data: bytes::Bytes = field.bytes().await.unwrap();
-        upload_picture(data, &"".to_string()).await?;
+        let data = field.bytes().await.unwrap();
+        upload_picture(&data, &"".to_string()).await;
         println!("Length of `{}` is {} bytes", name, data.len());
     }
 }

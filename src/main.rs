@@ -11,6 +11,7 @@ mod token;
 use crate::db::falidex::relations::fix_relation_id;
 use crate::middleware::{verify_jwt_middleware, verify_token_middleware};
 use crate::routes::falidex;
+use crate::routes::resource::upload_resource_picture;
 use crate::routes::{token::verify_hash, users::get_current_user};
 use crate::token::show_dev_ex_token;
 use axum::http::{
@@ -36,13 +37,12 @@ async fn main() {
         Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
     }
 
-    let allowed_origins = crate::env::get_allowed_origins();
     let cors = get_cors();
     let free = Router::new()
         .route("/token", post(verify_hash))
         .route(
             "/collection/symboles/{id}/upload",
-            post(falidex::symbole::get_occurences),
+            post(upload_resource_picture),
         )
         .with_state(app_state.clone())
         .layer(cors.clone());
@@ -282,6 +282,7 @@ async fn get_current_weather() -> Result<String, reqwest::Error> {
 }
 
 fn get_cors() -> CorsLayer {
+    let allowed_origins = crate::env::get_allowed_origins();
     if allowed_origins == "*" {
         CorsLayer::new()
             .allow_methods([

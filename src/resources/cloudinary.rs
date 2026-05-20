@@ -1,7 +1,10 @@
+use axum::{body::Bytes, response::IntoResponse};
+use base64::Engine;
+use base64::engine::general_purpose;
 use cloudinary::upload::{OptionalParameters, Source, Upload};
 use std::collections::BTreeSet;
 
-pub async fn upload_picture(data: Bytes, content_type: &str) -> impl IntoResponse {
+pub async fn upload_picture(data: &Bytes, content_type: &str) -> impl IntoResponse {
     let b64 = general_purpose::STANDARD.encode(&data);
     let data_url = format!("data:{};base64,{}", content_type, b64);
     println!("should upload {}", data_url);
@@ -17,5 +20,5 @@ async fn upload_data_url(data_url: String) {
         "cloud_name".to_string(),
         "api_secret".to_string(),
     );
-    let result = upload.image(Source::DataUrl(data_url), &options);
+    let _result = upload.image(Source::DataUrl(data_url), &options);
 }
