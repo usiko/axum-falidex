@@ -128,3 +128,6 @@ pub async fn get_occurences(db: &Database, id: String) -> Result<Vec<OccurenceDe
 
     Ok(occurences)
 }
+
+pub async fn add_picture(id: String) {}
+pub async fn remove_picture(id: String) {}

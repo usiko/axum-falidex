@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 pub async fn upload_picture(data: &Bytes, content_type: &str) -> Result<String, String> {
     let b64 = general_purpose::STANDARD.encode(data);
     let data_url = format!("data:{};base64,{}", content_type, b64);
-    upload_data_url(data_url).await
+    //upload_data_url(data_url).await // temp
 }
 
 pub async fn remove_picture() {}
