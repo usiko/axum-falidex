@@ -1,4 +1,5 @@
 use crate::db::falidex::symbole;
+use crate::env;
 use axum::body::Bytes;
 use base64::Engine;
 use base64::engine::general_purpose;
@@ -25,7 +26,7 @@ pub async fn remove_picture() {}
  * return cloudinary resources from given tags
  */
 pub async fn get_asset_by_tag(tags: HashSet<String>) -> Result<Vec<Tag>, String> {
-    let mut request_tags = std::collections::HashSet::from(["falidex".to_string()]);
+    let mut request_tags = std::collections::HashSet::from([get_app_tag()]);
     request_tags.extend(tags);
     let result_tags = get_tags(get_cloud_name().into(), "tag_name".into()).await;
     match result_tags {
@@ -74,14 +75,18 @@ fn get_cloud_name() -> String {
     "dbtqrsibv".to_string()
 }
 
+fn get_app_tag() -> String {
+    env::get_app_resource_tag()
+}
+
 fn get_options(tags: HashSet<String>) -> BTreeSet<OptionalParameters> {
-    let mut optionTags = std::collections::HashSet::from(["falidex".to_string()]);
+    let mut optionTags = std::collections::HashSet::from([get_app_tag()]);
     optionTags.extend(tags);
     BTreeSet::from([
         OptionalParameters::ResourceType(ResourceTypes::Image),
         OptionalParameters::Type(DeliveryType::Private),
         OptionalParameters::Tags(optionTags),
-        /*OptionalParameters::AssetFolder("falidex".to_string()),
+        /*OptionalParameters::AssetFolder(get_app_tag()),
         OptionalParameters::Transformation(vec![Transformations::Crop(CropMode::Fill {
             width: 800,
             height: 800,

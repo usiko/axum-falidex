@@ -66,3 +66,7 @@ pub fn get_bdd() -> String {
         }
     }
 }
+
+pub fn get_app_resource_tag() -> String {
+    return "test_falidex".to_string();
+}
