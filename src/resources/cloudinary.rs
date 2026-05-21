@@ -1,21 +1,46 @@
+use crate::db::falidex::symbole;
 use axum::body::Bytes;
 use base64::Engine;
 use base64::engine::general_purpose;
+use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
 use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
+use std::fmt::format;
 
-pub async fn upload_picture(data: &Bytes, content_type: &str) -> Result<String, String> {
+pub async fn upload_picture_for_symbole(
+    data: &Bytes,
+    content_type: &str,
+    symbole_id: &str,
+) -> Result<String, String> {
     let b64 = general_purpose::STANDARD.encode(data);
     let data_url = format!("data:{};base64,{}", content_type, b64);
-    //upload_data_url(data_url).await // temp
+    let tags = std::collections::HashSet::from([format!("symbole-{}", symbole_id)]);
+    upload_data_url(data_url, tags).await // temp
 }
 
 pub async fn remove_picture() {}
 
-async fn upload_data_url(data_url: String) -> Result<String, String> {
+/**
+ * return cloudinary resources from given tags
+ */
+pub async fn get_asset_by_tag(tags: HashSet<String>) -> Result<Vec<Tag>, String> {
+    let mut request_tags = std::collections::HashSet::from(["falidex".to_string()]);
+    request_tags.extend(tags);
+    let result_tags = get_tags(get_cloud_name().into(), "tag_name".into()).await;
+    match result_tags {
+        Ok(tag_list) => Ok(tag_list.resources),
+        Err(error) => {
+            let message = format!("Error getting picture: {}", error);
+            eprintln!(message);
+            return Err(message);
+        }
+    }
+}
+
+async fn upload_data_url(data_url: String, tags: HashSet<String>) -> Result<String, String> {
     let upload = Upload::new(get_api_key(), get_cloud_name(), get_api_key_secret());
-    let options = get_options();
+    let options = get_options(tags);
     let result = upload
         .image(Source::DataUrl(data_url), &options)
         .await
@@ -49,10 +74,18 @@ fn get_cloud_name() -> String {
     "dbtqrsibv".to_string()
 }
 
-fn get_options() -> BTreeSet<OptionalParameters> {
+fn get_options(tags: HashSet<String>) -> BTreeSet<OptionalParameters> {
+    let mut optionTags = std::collections::HashSet::from(["falidex".to_string()]);
+    optionTags.extend(tags);
     BTreeSet::from([
-        OptionalParameters::AssetFolder("falidex".to_string()),
         OptionalParameters::ResourceType(ResourceTypes::Image),
-        OptionalParameters::Type(DeliveryType::Authenticated),
+        OptionalParameters::Type(DeliveryType::Private),
+        OptionalParameters::Tags(optionTags),
+        /*OptionalParameters::AssetFolder("falidex".to_string()),
+        OptionalParameters::Transformation(vec![Transformations::Crop(CropMode::Fill {
+            width: 800,
+            height: 800,
+            gravity: None, // center par défaut
+        })]),*/
     ])
 }

@@ -1,5 +1,6 @@
 use super::model::{SymboleCreateReq, SymboleUpdateReq};
 use crate::{db::falidex::symbole, routes::users::AppClaims, state::AppState};
+use axum::extract::Multipart;
 use axum::http::status::StatusCode;
 use axum::{
     Json,
@@ -110,4 +111,24 @@ pub async fn get_occurences(State(state): State<AppState>, Path(id): Path<String
         )
             .into_response(),
     }
+}
+
+pub async fn add_picture(
+    Path(_user_id): Path<String>,
+    mut multipart: Multipart,
+) -> impl IntoResponse {
+    let mut idPictures: Vec<String> = Vec::new();
+
+    while let Some(mut field) = multipart.next_field().await.unwrap() {
+        let content_type = field
+            .content_type()
+            .unwrap_or("application/octet-stream")
+            .to_string();
+        let data = field.bytes().await.unwrap();
+        match upload_picture(&data, &content_type).await {
+            Ok(id) => idPictures.push(id),
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+        }
+    }
+    Json(urls).into_response()
 }
