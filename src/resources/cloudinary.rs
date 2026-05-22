@@ -111,16 +111,31 @@ fn get_signature_upload(atrribut_to_send: Option<HashMap<String, String>>) -> St
     hasher.update(to_serialize.as_bytes());
     hex::encode(hasher.finalize())
 }
-fn get_signature_delivery(id: String, attribut_to_send: Option<Vec<String>>) -> String {
-    let attributes_string = attribut_to_send.unwrap_or_default().join(",");
-    let to_sign = if attributes_string.is_empty() {
-        format!("{}/{}", id, get_api_key_secret())
+fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
+    let param_url = get_delivery_param_url_(id, attributs);
+    let signature = get_delivery_signature(param_url);
+    format!(
+        "https://res.cloudinary.com/{}/image/authenticated/{}/{}",
+        get_cloud_name(),
+        signature,
+        param_url
+    )
+}
+
+fn get_delivery_param_url_(id: String, attributs: Option<Vec<String>>) -> String {
+    let attributes_string = attributs.unwrap_or_default().join(",");
+    if attributes_string.is_empty() {
+        format!("{}", id)
     } else {
-        format!("{}/{}{}", attributes_string, id, get_api_key_secret())
-    };
+        format!("{}/{}", attributes_string, id)
+    }
+}
+fn get_delivery_signature(param_url_delivery: String) -> String {
     let mut hasher = Sha256::new();
+    let to_sign = format!({}{},param_url_delivery,get_api_key_secret());
     hasher.update(to_sign.as_bytes());
-    hex::encode(hasher.finalize())
+    let hash = hex::encode(hasher.finalize());
+    format!("s--{}--", hash.chars().take(8).collect::<String>())
 }
 
 fn get_options(tags: HashSet<String>) -> BTreeSet<OptionalParameters> {
