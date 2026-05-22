@@ -3,9 +3,11 @@ use crate::env;
 use axum::body::Bytes;
 use base64::Engine;
 use base64::engine::general_purpose;
+use chrono::Utc;
 use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
 use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
+use sha2::Sha256;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::format;
 use std::time;
@@ -83,25 +85,41 @@ fn get_app_tag() -> String {
 /**
  * generate signature for cloudinary
  */
-fn get_signature(atrribut_to_send: Option<HashMap<String, String>>) -> String {
+fn get_signature_upload(atrribut_to_send: Option<HashMap<String, String>>) -> String {
     let not_allowed_keys = std::collections::HashSet::from(["file", "cloud_name", "api_key"]);
     let timestamp = Utc::now().timestamp();
     let attributes_string = atrribut_to_send
         .map(|item| {
-            item.iter()
-                .filter(|(key, value)| !not_allowed_keys.contains(key.as_str()))
-                .map(|(key, value)| return format!("{}={}&", key, value))
+            let mut keys: Vec<_> = item
+                .iter()
+                .filter(|(key, _)| !not_allowed_keys.contains(key.as_str()))
+                .collect();
+            keys.sort_by_key(|(key, _)| key.clone());
+            keys.into_iter()
+                .map(|(key, value)| format!("{}={}", key, value))
                 .collect::<Vec<_>>()
                 .join("&")
         })
         .unwrap_or_default();
     let to_serialize = format!(
-        "{attributes_string}timestamp={}{}",
+        "{}timestamp={}{}",
+        attributes_string
         timestamp,
         get_api_key_secret()
     );
     let mut hasher = Sha256::new();
     hasher.update(to_serialize.as_bytes());
+    hex::encode(hasher.finalize())
+}
+fn get_signature_delivery(id: String, attribut_to_send: Option<Vec<String>>) -> String {
+    let attributes_string = attribut_to_send.unwrap_or_default().join(",");
+    let to_sign = if attributes_string.is_empty() {
+        format!("{}/{}", id, get_api_key_secret())
+    } else {
+        format!("{}/{}{}", attributes_string, id, get_api_key_secret())
+    };
+    let mut hasher = Sha256::new();
+    hasher.update(to_sign.as_bytes());
     hex::encode(hasher.finalize())
 }
 
@@ -120,3 +138,7 @@ fn get_options(tags: HashSet<String>) -> BTreeSet<OptionalParameters> {
         })]),*/
     ])
 }
+
+/*
+hurl = 'https://res.cloudinary.com/demo/image/authenticated/' + ([signature, to_sign]).join("/")
+*/
