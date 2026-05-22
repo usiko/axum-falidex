@@ -1,4 +1,3 @@
-use crate::db::falidex::symbole;
 use crate::env;
 use axum::body::Bytes;
 use base64::Engine;
@@ -7,10 +6,10 @@ use chrono::Utc;
 use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
 use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
+use futures::future::ok;
+use reqwest::Client;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
-use std::fmt::format;
-use std::time;
 
 pub async fn upload_picture_for_symbole(
     data: &Bytes,
@@ -85,10 +84,10 @@ fn get_app_tag() -> String {
 /**
  * generate signature for cloudinary
  */
-fn get_signature_upload(atrribut_to_send: Option<HashMap<String, String>>) -> String {
+fn get_signature_upload(attribut_to_send: Option<HashMap<String, String>>) -> String {
     let not_allowed_keys = std::collections::HashSet::from(["file", "cloud_name", "api_key"]);
     let timestamp = Utc::now().timestamp();
-    let attributes_string = atrribut_to_send
+    let attributes_string = attribut_to_send
         .map(|item| {
             let mut keys: Vec<_> = item
                 .iter()
@@ -139,12 +138,12 @@ fn get_delivery_signature(param_url_delivery: String) -> String {
 }
 
 fn get_options(tags: HashSet<String>) -> BTreeSet<OptionalParameters> {
-    let mut optionTags = std::collections::HashSet::from([get_app_tag()]);
-    optionTags.extend(tags);
+    let mut option_tags = std::collections::HashSet::from([get_app_tag()]);
+    option_tags.extend(tags);
     BTreeSet::from([
         OptionalParameters::ResourceType(ResourceTypes::Image),
         OptionalParameters::Type(DeliveryType::Private),
-        OptionalParameters::Tags(optionTags),
+        OptionalParameters::Tags(option_tags),
         /*OptionalParameters::AssetFolder(get_app_tag()),
         OptionalParameters::Transformation(vec![Transformations::Crop(CropMode::Fill {
             width: 800,
@@ -152,6 +151,27 @@ fn get_options(tags: HashSet<String>) -> BTreeSet<OptionalParameters> {
             gravity: None, // center par défaut
         })]),*/
     ])
+}
+
+async fn upload_picture(
+    preset: String,
+    folder: String,
+    tags: Vec<String>,
+) -> Result<(), reqwest::Error> {
+    let url = format!(
+        "https://api.cloudinary.com/v1_1/{}/image/upload",
+        get_cloud_name()
+    );
+    let client = Client::new();
+    let mut attributes: HashMap<String, String> = HashMap::new();
+    attributes.insert("preset".to_string(), preset);
+    attributes.insert("folder".to_string(), folder);
+    attributes.insert("tags".to_string(), tags.join(","));
+    attributes.insert("api_key".to_string(), get_api_key());
+    let signature = get_signature_upload(Some(attributes.clone()));
+    attributes.insert("signature".to_string(), signature);
+    client.post(&url).form(&attributes).send().await?;
+    Ok(())
 }
 
 /*

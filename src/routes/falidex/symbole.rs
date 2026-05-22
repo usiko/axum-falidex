@@ -126,10 +126,10 @@ pub async fn add_picture(
             .unwrap_or("application/octet-stream")
             .to_string();
         let data = field.bytes().await.unwrap();
-        match upload_picture_for_symbole(&data, &content_type).await {
+        /*match upload_picture_for_symbole(&data, &content_type).await {
             Ok(id) => idPictures.push(id),
             Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-        }
+        }*/
     }
-    Json(urls).into_response()
+    Json(idPictures).into_response()
 }
