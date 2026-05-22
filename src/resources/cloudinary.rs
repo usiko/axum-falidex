@@ -7,7 +7,7 @@ use chrono::Utc;
 use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
 use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::format;
 use std::time;
@@ -36,7 +36,7 @@ pub async fn get_asset_by_tag(tags: HashSet<String>) -> Result<Vec<Tag>, String>
         Ok(tag_list) => Ok(tag_list.resources),
         Err(error) => {
             let message = format!("Error getting picture: {}", error);
-            eprintln!(message);
+            eprintln!("{}", message);
             return Err(message);
         }
     }
@@ -103,7 +103,7 @@ fn get_signature_upload(atrribut_to_send: Option<HashMap<String, String>>) -> St
         .unwrap_or_default();
     let to_serialize = format!(
         "{}timestamp={}{}",
-        attributes_string
+        attributes_string,
         timestamp,
         get_api_key_secret()
     );
@@ -112,8 +112,8 @@ fn get_signature_upload(atrribut_to_send: Option<HashMap<String, String>>) -> St
     hex::encode(hasher.finalize())
 }
 fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
-    let param_url = get_delivery_param_url_(id, attributs);
-    let signature = get_delivery_signature(param_url);
+    let param_url = get_delivery_param_url_(id.clone(), attributs.clone());
+    let signature = get_delivery_signature(param_url.clone());
     format!(
         "https://res.cloudinary.com/{}/image/authenticated/{}/{}",
         get_cloud_name(),
@@ -132,7 +132,7 @@ fn get_delivery_param_url_(id: String, attributs: Option<Vec<String>>) -> String
 }
 fn get_delivery_signature(param_url_delivery: String) -> String {
     let mut hasher = Sha256::new();
-    let to_sign = format!({}{},param_url_delivery,get_api_key_secret());
+    let to_sign = format!("{}{}", param_url_delivery, get_api_key_secret());
     hasher.update(to_sign.as_bytes());
     let hash = hex::encode(hasher.finalize());
     format!("s--{}--", hash.chars().take(8).collect::<String>())
