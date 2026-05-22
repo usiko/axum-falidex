@@ -6,8 +6,9 @@ use base64::engine::general_purpose;
 use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
 use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::format;
+use std::time;
 
 pub async fn upload_picture_for_symbole(
     data: &Bytes,
@@ -77,6 +78,31 @@ fn get_cloud_name() -> String {
 
 fn get_app_tag() -> String {
     env::get_app_resource_tag()
+}
+
+/**
+ * generate signature for cloudinary
+ */
+fn get_signature(atrribut_to_send: Option<HashMap<String, String>>) -> String {
+    let not_allowed_keys = std::collections::HashSet::from(["file", "cloud_name", "api_key"]);
+    let timestamp = Utc::now().timestamp();
+    let attributes_string = atrribut_to_send
+        .map(|item| {
+            item.iter()
+                .filter(|(key, value)| !not_allowed_keys.contains(key.as_str()))
+                .map(|(key, value)| return format!("{}={}&", key, value))
+                .collect::<Vec<_>>()
+                .join("&")
+        })
+        .unwrap_or_default();
+    let to_serialize = format!(
+        "{attributes_string}timestamp={}{}",
+        timestamp,
+        get_api_key_secret()
+    );
+    let mut hasher = Sha256::new();
+    hasher.update(to_serialize.as_bytes());
+    hex::encode(hasher.finalize())
 }
 
 fn get_options(tags: HashSet<String>) -> BTreeSet<OptionalParameters> {
