@@ -3478,6 +3478,7 @@ dependencies = [
  "jsonwebtoken 10.4.0",
  "mongodb",
  "once_cell",
+ "percent-encoding",
  "rand 0.8.6",
  "reqwest",
  "serde",

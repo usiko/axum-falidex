@@ -5,6 +5,7 @@ use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
 use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
 use once_cell::sync::Lazy;
+use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
 use reqwest::{Client, multipart};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -125,7 +126,10 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
     let ids: Vec<String> = parsed
         .resources
         .into_iter()
-        .map(|asset| asset.public_id)
+        .map(|asset| {
+            // Ne garder que le dernier segment de l'id (après le dernier '/')
+            utf8_percent_encode(&asset.public_id, NON_ALPHANUMERIC).to_string()
+        })
         .collect();
 
     // Update cache
@@ -162,6 +166,9 @@ async fn upload_data_url(data_url: String, tags: HashSet<String>) -> Result<Stri
 }
 
 pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, String> {
+    if symbole_id != "symbole-112" {
+        return Ok(Vec::new());
+    }
     let folder = format!("{}/{}/symbole-{}", get_app_tag(), "symbole", symbole_id);
     let result = get_asset_in_folder(&folder).await;
     println!("recherche d'img pour {}", symbole_id);
@@ -239,14 +246,20 @@ pub fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
 }
 
 fn get_delivery_param_url_(id: String, attributs: Option<Vec<String>>) -> String {
+    println!("get delivery param url {},{:?}", &id, &attributs);
     let attributes_string = attributs.unwrap_or_default().join(",");
+    let decoded_id = percent_decode_str(&id)
+        .decode_utf8()
+        .expect("Invalid UTF-8")
+        .to_string();
     if attributes_string.is_empty() {
-        format!("{}", id)
+        format!("{}", decoded_id)
     } else {
-        format!("{}/{}", attributes_string, id)
+        format!("{}/{}", attributes_string, decoded_id)
     }
 }
 fn get_delivery_signature(param_url_delivery: String) -> String {
+    println!("get delivery signature {}", &param_url_delivery);
     let mut hasher = Sha256::new();
     let to_sign = format!("{}{}", param_url_delivery, get_api_key_secret());
     hasher.update(to_sign.as_bytes());
