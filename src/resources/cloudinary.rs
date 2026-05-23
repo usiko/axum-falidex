@@ -56,6 +56,52 @@ pub async fn get_asset_by_tag(tags: HashSet<String>) -> Result<Vec<Tag>, String>
     }
 }
 
+pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
+    let cloud_name = get_cloud_name();
+    let api_key = get_api_key();
+    let api_secret = get_api_key_secret();
+    let url = format!(
+        "https://api.cloudinary.com/v1_1/{}/resources/search",
+        cloud_name
+    );
+    let expression = format!("folder:{}", folder);
+    #[derive(serde::Serialize)]
+    struct SearchBody<'a> {
+        expression: &'a str,
+    }
+    let client = Client::new();
+    let res = client
+        .post(&url)
+        .basic_auth(api_key, Some(api_secret))
+        .json(&SearchBody {
+            expression: &expression,
+        })
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = res.status();
+    let text = res.text().await.map_err(|e| e.to_string())?;
+    if !status.is_success() {
+        return Err(format!("Cloudinary search error: {}", text));
+    }
+    #[derive(serde::Deserialize)]
+    struct CloudinarySearchResponse {
+        resources: Vec<CloudinaryAsset>,
+    }
+    #[derive(serde::Deserialize)]
+    struct CloudinaryAsset {
+        public_id: String,
+    }
+    let parsed: CloudinarySearchResponse =
+        serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    let ids = parsed
+        .resources
+        .into_iter()
+        .map(|asset| asset.public_id)
+        .collect();
+    Ok(ids)
+}
+
 async fn upload_data_url(data_url: String, tags: HashSet<String>) -> Result<String, String> {
     let upload = Upload::new(get_api_key(), get_cloud_name(), get_api_key_secret());
     let options = get_options(tags);
@@ -81,17 +127,12 @@ async fn upload_data_url(data_url: String, tags: HashSet<String>) -> Result<Stri
 }
 
 pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, String> {
-    let result = get_asset_by_tag(std::collections::HashSet::from([format!(
-        "symbole-{}",
-        symbole_id.clone()
-    )]))
-    .await;
+    let folder = format!("{}/{}/symbole-{}", get_app_tag(), "symbole", symbole_id);
+    let result = get_asset_in_folder(&folder).await;
+    println!("recherche d'img pour {}", symbole_id);
     match result {
         Ok(tags) => {
-            let urls: Vec<String> = tags
-                .iter()
-                .map(|item| format!("/resource/{}", item.public_id))
-                .collect();
+            let urls: Vec<String> = tags.iter().map(|id| format!("/resource/{}", id)).collect();
             if urls.is_empty() {
                 Err("Aucune image trouvée pour ce symbole".to_string())
             } else {
@@ -99,7 +140,10 @@ pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, Str
                 Ok(urls)
             }
         }
-        Err(error) => Err(error),
+        Err(error) => {
+            println!("error cloudinary {}", error);
+            Err(error)
+        }
     }
 }
 
