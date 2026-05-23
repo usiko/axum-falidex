@@ -4,9 +4,12 @@ use chrono::Utc;
 use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
 use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
+use once_cell::sync::Lazy;
 use reqwest::{Client, multipart};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeSet, HashMap, HashSet, hash_map};
+use std::collections::{BTreeSet, HashMap, HashSet};
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 pub async fn upload_picture_for_symbole(
     file_bytes: Vec<u8>,
@@ -16,20 +19,30 @@ pub async fn upload_picture_for_symbole(
     let symbole_tag = format!("symbole-{}", symbole_id);
     let tags = Vec::from(["symbole".to_string(), symbole_tag.clone()]);
     //attributes.
+    let folder = format!("{}/{}/{}", get_app_tag(), "symbole", symbole_tag);
     let result = upload_picture(
         file_bytes,
         filename,
         "falidex".to_string(),
-        format!("{}/{}/{}", get_app_tag(), "symbole", symbole_tag),
+        folder.clone(),
         tags,
     )
     .await;
     match result {
         Ok(response) => {
-            //error
-            match response.public_id {
-                Some(id) => Ok(id),
-                None => Err("Cloudinary: public_id manquant dans la réponse".to_string()),
+            if let Some(id) = &response.public_id {
+                // Met à jour le cache du dossier concerné
+                let mut cache = ASSET_CACHE.lock().unwrap();
+                let now = Instant::now();
+                let entry = cache.entry(folder).or_insert_with(|| (now, Vec::new()));
+                // Ajoute l'id si absent
+                if !entry.1.contains(id) {
+                    entry.1.push(id.clone());
+                }
+                entry.0 = now;
+                Ok(id.clone())
+            } else {
+                Err("Cloudinary: public_id manquant dans la réponse".to_string())
             }
         }
         Err(e) => Err(format!("Erreur HTTP: {}", e)),
@@ -56,7 +69,22 @@ pub async fn get_asset_by_tag(tags: HashSet<String>) -> Result<Vec<Tag>, String>
     }
 }
 
+static ASSET_CACHE: Lazy<Mutex<HashMap<String, (Instant, Vec<String>)>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+const CACHE_DURATION: Duration = Duration::from_secs(3600); // 1 hour
+
 pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
+    // Check cache first
+    {
+        let cache = ASSET_CACHE.lock().unwrap();
+        if let Some((instant, ids)) = cache.get(folder) {
+            if instant.elapsed() < CACHE_DURATION {
+                return Ok(ids.clone());
+            }
+        }
+    }
+
+    // Not in cache or expired, fetch from Cloudinary
     let cloud_name = get_cloud_name();
     let api_key = get_api_key();
     let api_secret = get_api_key_secret();
@@ -94,11 +122,18 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
     }
     let parsed: CloudinarySearchResponse =
         serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    let ids = parsed
+    let ids: Vec<String> = parsed
         .resources
         .into_iter()
         .map(|asset| asset.public_id)
         .collect();
+
+    // Update cache
+    {
+        let mut cache = ASSET_CACHE.lock().unwrap();
+        cache.insert(folder.to_string(), (Instant::now(), ids.clone()));
+    }
+
     Ok(ids)
 }
 

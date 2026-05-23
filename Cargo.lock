@@ -3477,6 +3477,7 @@ dependencies = [
  "hmac",
  "jsonwebtoken 10.4.0",
  "mongodb",
+ "once_cell",
  "rand 0.8.6",
  "reqwest",
  "serde",
