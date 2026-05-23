@@ -115,21 +115,39 @@ pub async fn get_occurences(State(state): State<AppState>, Path(id): Path<String
 }
 
 pub async fn add_picture(
-    Path(_user_id): Path<String>,
+    Path(symbole_id): Path<String>,
     mut multipart: Multipart,
 ) -> impl IntoResponse {
-    let mut idPictures: Vec<String> = Vec::new();
-
+    let mut results = Vec::new();
+    let mut has_error = false;
+    let mut has_success = false;
     while let Some(mut field) = multipart.next_field().await.unwrap() {
-        let content_type = field
-            .content_type()
-            .unwrap_or("application/octet-stream")
-            .to_string();
-        let data = field.bytes().await.unwrap();
-        /*match upload_picture_for_symbole(&data, &content_type).await {
-            Ok(id) => idPictures.push(id),
-            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-        }*/
+        let filename = field
+            .file_name()
+            .map(|name| name.to_string())
+            .unwrap_or("file.bin".to_string());
+        let file_bytes = field.bytes().await.unwrap().to_vec();
+        let result = upload_picture_for_symbole(file_bytes, filename, &symbole_id).await;
+
+        match result {
+            Ok(id) => {
+                has_success = true;
+                results.push(json!({"success": true, "id": id}))
+            }
+            Err(e) => {
+                has_error = true;
+                results.push(json!({"success": false, "error": e}))
+            }
+        }
     }
-    Json(idPictures).into_response()
+    let status = if has_error {
+        if has_success {
+            StatusCode::PARTIAL_CONTENT
+        } else {
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    } else {
+        StatusCode::OK
+    };
+    (status, Json(results)).into_response()
 }
