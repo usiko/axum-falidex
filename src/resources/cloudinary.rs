@@ -1,4 +1,5 @@
 use crate::env;
+use crate::resources::model::CloudinaryUploadResponse;
 use chrono::Utc;
 use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
@@ -24,7 +25,13 @@ pub async fn upload_picture_for_symbole(
     )
     .await;
     match result {
-        Ok(response) => Ok("ok".to_string()),
+        Ok(response) => {
+            //error
+            match response.public_id {
+                Some(id) => Ok(id),
+                None => Err("Cloudinary: public_id manquant dans la réponse".to_string()),
+            }
+        }
         Err(e) => Err(format!("Erreur HTTP: {}", e)),
     }
     //upload_data_url(data_url, tags).await // temp
@@ -92,9 +99,17 @@ fn get_app_tag() -> String {
 /**
  * generate signature for cloudinary
  */
-fn get_signature_upload(attribut_to_send: Option<HashMap<String, String>>) -> String {
-    let not_allowed_keys = std::collections::HashSet::from(["file", "cloud_name", "api_key"]);
-    let timestamp = Utc::now().timestamp();
+fn get_signature_upload(
+    attribut_to_send: Option<HashMap<String, String>>,
+    timestamp: i64,
+) -> String {
+    let not_allowed_keys = std::collections::HashSet::from([
+        "file",
+        "cloud_name",
+        "api_key",
+        "signature",
+        "resource_type",
+    ]);
     let attributes_string = attribut_to_send
         .map(|item| {
             let mut keys: Vec<_> = item
@@ -108,12 +123,7 @@ fn get_signature_upload(attribut_to_send: Option<HashMap<String, String>>) -> St
                 .join("&")
         })
         .unwrap_or_default();
-    let to_serialize = format!(
-        "{}timestamp={}{}",
-        attributes_string,
-        timestamp,
-        get_api_key_secret()
-    );
+    let to_serialize = format!("{}{}", attributes_string, get_api_key_secret());
     let mut hasher = Sha256::new();
     hasher.update(to_serialize.as_bytes());
     hex::encode(hasher.finalize())
@@ -167,23 +177,39 @@ async fn upload_picture(
     preset: String,
     folder: String,
     tags: Vec<String>,
-) -> Result<reqwest::Response, reqwest::Error> {
+) -> Result<CloudinaryUploadResponse, String> {
     let url = format!(
         "https://api.cloudinary.com/v1_1/{}/image/upload",
         get_cloud_name()
     );
+    let timestamp = Utc::now().timestamp();
     let client = Client::new();
     let mut attributes: HashMap<String, String> = HashMap::new();
-    attributes.insert("preset".to_string(), preset);
+    attributes.insert("upload_preset".to_string(), preset);
     attributes.insert("folder".to_string(), folder);
     attributes.insert("tags".to_string(), tags.join(","));
     attributes.insert("api_key".to_string(), get_api_key());
-    let signature = get_signature_upload(Some(attributes.clone()));
+    attributes.insert("timestamp".to_string(), timestamp.to_string());
+    let signature = get_signature_upload(Some(attributes.clone()), timestamp);
     attributes.insert("signature".to_string(), signature);
     let multipart = multipart::Part::bytes(file_bytes).file_name(filename);
     let mut form = multipart::Form::new().part("file", multipart);
     for (key, value) in &attributes {
         form = form.text(key.clone(), value.clone());
     }
-    client.post(&url).form(&attributes).send().await
+    println!("upload to cloudinary {} {:?}", &url, attributes);
+    let response = client
+        .post(&url)
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let text = response.text().await.map_err(|e| e.to_string())?;
+    let parsed: CloudinaryUploadResponse =
+        serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    if let Some(err) = &parsed.error {
+        Err(err.message.clone())
+    } else {
+        Ok(parsed)
+    }
 }
