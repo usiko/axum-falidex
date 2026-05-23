@@ -1,25 +1,33 @@
 use crate::env;
-use axum::body::Bytes;
-use base64::Engine;
-use base64::engine::general_purpose;
 use chrono::Utc;
 use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
 use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
-use futures::future::ok;
-use reqwest::Client;
+use reqwest::{Client, multipart};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet, hash_map};
 
 pub async fn upload_picture_for_symbole(
-    data: &Bytes,
-    content_type: &str,
+    file_bytes: Vec<u8>,
+    filename: String,
     symbole_id: &str,
 ) -> Result<String, String> {
-    let b64 = general_purpose::STANDARD.encode(data);
-    let data_url = format!("data:{};base64,{}", content_type, b64);
-    let tags = std::collections::HashSet::from([format!("symbole-{}", symbole_id)]);
-    upload_data_url(data_url, tags).await // temp
+    let symbole_tag = format!("symbole-{}", symbole_id);
+    let tags = Vec::from([symbole_tag]);
+    //attributes.
+    let result = upload_picture(
+        file_bytes,
+        filename,
+        "falidex".to_string(),
+        format!("{}/{}", "falidex", "symbole_tag"),
+        tags,
+    )
+    .await;
+    match result {
+        Ok(response) => Ok("ok".to_string()),
+        Err(e) => Err(format!("Erreur HTTP: {}", e)),
+    }
+    //upload_data_url(data_url, tags).await // temp
 }
 
 pub async fn remove_picture() {}
@@ -154,10 +162,12 @@ fn get_options(tags: HashSet<String>) -> BTreeSet<OptionalParameters> {
 }
 
 async fn upload_picture(
+    file_bytes: Vec<u8>,
+    filename: String,
     preset: String,
     folder: String,
     tags: Vec<String>,
-) -> Result<(), reqwest::Error> {
+) -> Result<reqwest::Response, reqwest::Error> {
     let url = format!(
         "https://api.cloudinary.com/v1_1/{}/image/upload",
         get_cloud_name()
@@ -170,10 +180,10 @@ async fn upload_picture(
     attributes.insert("api_key".to_string(), get_api_key());
     let signature = get_signature_upload(Some(attributes.clone()));
     attributes.insert("signature".to_string(), signature);
-    client.post(&url).form(&attributes).send().await?;
-    Ok(())
+    let multipart = multipart::Part::bytes(file_bytes).file_name(filename);
+    let mut form = multipart::Form::new().part("file", multipart);
+    for (key, value) in &attributes {
+        form = form.text(key.clone(), value.clone());
+    }
+    client.post(&url).form(&attributes).send().await
 }
-
-/*
-hurl = 'https://res.cloudinary.com/demo/image/authenticated/' + ([signature, to_sign]).join("/")
-*/
