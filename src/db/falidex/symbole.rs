@@ -1,7 +1,10 @@
 use super::update_helper;
 use crate::model::falidex_model::{
-    CreateSymbole, LinkDetail, OccurenceDetail, Symbole, UpdateSymbole,
+    CreateSymbole, Img, LinkDetail, OccurenceDetail, Symbole, UpdateSymbole,
 };
+use crate::resources::cloudinary::get_urls_for_symbole;
+use futures::TryFutureExt;
+use futures::future::join_all;
 use futures::stream::TryStreamExt;
 use mongodb::bson;
 use mongodb::{Collection, Database, bson::doc};
@@ -15,7 +18,26 @@ pub async fn get(db: &Database) -> Result<Vec<Symbole>, String> {
         .try_collect()
         .await
         .map_err(|e| e.to_string())?;
-    Ok(symboles)
+
+    let futures = symboles.into_iter().map(|item| async move {
+        let urls = get_urls_for_symbole(item.id.clone())
+            .await
+            .unwrap_or_else(|_| vec![]);
+        Symbole {
+            id: item.id,
+            name: item.name,
+            imgs: Some(
+                urls.into_iter()
+                    .map(|url| Img {
+                        id: url.clone(),
+                        url,
+                    })
+                    .collect(),
+            ),
+        }
+    });
+    let adapted_symboles = join_all(futures).await;
+    Ok(adapted_symboles)
 }
 
 pub async fn create(db: &Database, user_id: String, data: CreateSymbole) -> Result<String, String> {
@@ -128,6 +150,3 @@ pub async fn get_occurences(db: &Database, id: String) -> Result<Vec<OccurenceDe
 
     Ok(occurences)
 }
-
-pub async fn add_picture(id: String) {}
-pub async fn remove_picture(id: String) {}

@@ -11,7 +11,7 @@ mod token;
 use crate::db::falidex::relations::fix_relation_id;
 use crate::middleware::{verify_jwt_middleware, verify_token_middleware};
 use crate::routes::falidex;
-use crate::routes::falidex::symbole::add_picture;
+use crate::routes::falidex::symbole::{add_picture, redirect_picture};
 use crate::routes::{token::verify_hash, users::get_current_user};
 use crate::token::show_dev_ex_token;
 use axum::http::{
@@ -41,6 +41,7 @@ async fn main() {
     let free = Router::new()
         .route("/token", post(verify_hash))
         .route("/collection/symboles/{id}/img/upload", post(add_picture))
+        .route("/resource/{id}", get(redirect_picture))
         .with_state(app_state.clone())
         .layer(cors.clone());
 

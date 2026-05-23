@@ -1,8 +1,9 @@
 use super::model::{SymboleCreateReq, SymboleUpdateReq};
-use crate::resources::cloudinary::upload_picture_for_symbole;
+use crate::resources::cloudinary::{get_delivery_url, upload_picture_for_symbole};
 use crate::{db::falidex::symbole, routes::users::AppClaims, state::AppState};
 use axum::extract::Multipart;
 use axum::http::status::StatusCode;
+use axum::response::Redirect;
 use axum::{
     Json,
     extract::{Path, State},
@@ -150,4 +151,9 @@ pub async fn add_picture(
         StatusCode::OK
     };
     (status, Json(results)).into_response()
+}
+
+pub async fn redirect_picture(Path(id): Path<String>) -> impl IntoResponse {
+    let url = get_delivery_url(id, None);
+    Redirect::temporary(&url)
 }

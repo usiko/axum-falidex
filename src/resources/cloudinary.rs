@@ -14,13 +14,13 @@ pub async fn upload_picture_for_symbole(
     symbole_id: &str,
 ) -> Result<String, String> {
     let symbole_tag = format!("symbole-{}", symbole_id);
-    let tags = Vec::from([symbole_tag]);
+    let tags = Vec::from(["symbole".to_string(), symbole_tag.clone()]);
     //attributes.
     let result = upload_picture(
         file_bytes,
         filename,
         "falidex".to_string(),
-        format!("{}/{}", "falidex", "symbole_tag"),
+        format!("{}/{}/{}", get_app_tag(), "symbole", symbole_tag),
         tags,
     )
     .await;
@@ -44,13 +44,13 @@ pub async fn remove_picture() {}
  */
 pub async fn get_asset_by_tag(tags: HashSet<String>) -> Result<Vec<Tag>, String> {
     let mut request_tags = std::collections::HashSet::from([get_app_tag()]);
-    request_tags.extend(tags);
+    request_tags.extend(tags.clone());
     let result_tags = get_tags(get_cloud_name().into(), "tag_name".into()).await;
     match result_tags {
         Ok(tag_list) => Ok(tag_list.resources),
         Err(error) => {
             let message = format!("Error getting picture: {}", error);
-            eprintln!("{}", message);
+            eprintln!("{:?}{}", tags, message);
             return Err(message);
         }
     }
@@ -80,6 +80,29 @@ async fn upload_data_url(data_url: String, tags: HashSet<String>) -> Result<Stri
     }
 }
 
+pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, String> {
+    let result = get_asset_by_tag(std::collections::HashSet::from([format!(
+        "symbole-{}",
+        symbole_id.clone()
+    )]))
+    .await;
+    match result {
+        Ok(tags) => {
+            let urls: Vec<String> = tags
+                .iter()
+                .map(|item| format!("/resource/{}", item.public_id))
+                .collect();
+            if urls.is_empty() {
+                Err("Aucune image trouvée pour ce symbole".to_string())
+            } else {
+                println!("success getting picture {:?}{}", urls.clone(), symbole_id);
+                Ok(urls)
+            }
+        }
+        Err(error) => Err(error),
+    }
+}
+
 fn get_api_key() -> String {
     "689958834963682".to_string()
 }
@@ -99,10 +122,7 @@ fn get_app_tag() -> String {
 /**
  * generate signature for cloudinary
  */
-fn get_signature_upload(
-    attribut_to_send: Option<HashMap<String, String>>,
-    timestamp: i64,
-) -> String {
+fn get_signature_upload(attribut_to_send: Option<HashMap<String, String>>) -> String {
     let not_allowed_keys = std::collections::HashSet::from([
         "file",
         "cloud_name",
@@ -128,7 +148,7 @@ fn get_signature_upload(
     hasher.update(to_serialize.as_bytes());
     hex::encode(hasher.finalize())
 }
-fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
+pub fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
     let param_url = get_delivery_param_url_(id.clone(), attributs.clone());
     let signature = get_delivery_signature(param_url.clone());
     format!(
@@ -190,7 +210,7 @@ async fn upload_picture(
     attributes.insert("tags".to_string(), tags.join(","));
     attributes.insert("api_key".to_string(), get_api_key());
     attributes.insert("timestamp".to_string(), timestamp.to_string());
-    let signature = get_signature_upload(Some(attributes.clone()), timestamp);
+    let signature = get_signature_upload(Some(attributes.clone()));
     attributes.insert("signature".to_string(), signature);
     let multipart = multipart::Part::bytes(file_bytes).file_name(filename);
     let mut form = multipart::Form::new().part("file", multipart);
