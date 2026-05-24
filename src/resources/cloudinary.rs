@@ -155,6 +155,18 @@ pub async fn get_picture(id_picture: String) -> Result<Vec<u8>, String> {
         }
     }
 }
+
+pub fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
+    let param_url = get_delivery_param_url(id.clone(), attributs.clone());
+    let signature = get_delivery_signature(param_url.clone());
+    format!(
+        "https://res.cloudinary.com/{}/image/authenticated/{}/{}",
+        get_cloud_name(),
+        signature,
+        param_url
+    )
+}
+
 fn get_api_key() -> String {
     "689958834963682".to_string()
 }
@@ -199,17 +211,6 @@ fn get_signature_upload(attribut_to_send: Option<HashMap<String, String>>) -> St
     let mut hasher = Sha256::new();
     hasher.update(to_serialize.as_bytes());
     hex::encode(hasher.finalize())
-}
-
-fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
-    let param_url = get_delivery_param_url(id.clone(), attributs.clone());
-    let signature = get_delivery_signature(param_url.clone());
-    format!(
-        "https://res.cloudinary.com/{}/image/authenticated/{}/{}",
-        get_cloud_name(),
-        signature,
-        param_url
-    )
 }
 
 fn get_delivery_param_url(id: String, attributs: Option<Vec<String>>) -> String {
