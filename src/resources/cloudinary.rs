@@ -1,5 +1,6 @@
 use crate::env;
 use crate::resources::model::CloudinaryUploadResponse;
+use base64::prelude::*;
 use chrono::Utc;
 use cloudinary::tags::{Tag, get_tags};
 use cloudinary::upload::result::UploadResult;
@@ -216,22 +217,23 @@ fn get_delivery_param_url(id: String, attributs: Option<Vec<String>>) -> String 
         .expect("Invalid UTF-8")
         .to_string();
     if attributes_string.is_empty() {
-        let url = format!("{}.jpg", decoded_id);
+        let url = format!("{}", decoded_id);
         println!("delivery param url {}", &url);
         url
     } else {
-        let url = format!("{}/{}.jpg", attributes_string, decoded_id);
+        let url = format!("{}/{}", attributes_string, decoded_id);
         println!("delivery param url {}", &url);
         url
     }
 }
 fn get_delivery_signature(param_url_delivery: String, timestamp: i64) -> String {
-    let mut hasher = Sha1::new();
+    let mut hasher = Sha256::new();
     // Cloudinary attend que le timestamp soit dans la chaîne à signer
     let to_sign = format!("{}{}", param_url_delivery, get_api_key_secret());
     println!("get delivery signature {}", &to_sign);
     hasher.update(to_sign.as_bytes());
-    let hash = hex::encode(hasher.finalize());
+
+    let hash = BASE64_STANDARD.encode(hasher.finalize());
     println!("get delivery hash {}", &hash);
     format!("s--{}--", hash.chars().take(8).collect::<String>())
 }
