@@ -154,7 +154,10 @@ pub async fn add_picture(
 }
 
 pub async fn redirect_picture(Path(id): Path<String>) -> impl IntoResponse {
-    let url = get_delivery_url(id.clone(), None);
+    let url = get_delivery_url(
+        id.clone(),
+        Some(vec!["f_auto".to_string(), "q_auto".to_string()]),
+    );
     println!("cloudinary url for symbole {}:{}", id, &url);
 
     // Teste l'URL Cloudinary avant de rediriger
