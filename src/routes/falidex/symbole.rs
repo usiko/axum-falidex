@@ -1,5 +1,5 @@
 use super::model::{SymboleCreateReq, SymboleUpdateReq};
-use crate::resources::cloudinary::{get_delivery_url, upload_picture_for_symbole};
+use crate::resources::cloudinary::upload_picture_for_symbole;
 use crate::{db::falidex::symbole, routes::users::AppClaims, state::AppState};
 use axum::extract::Multipart;
 use axum::http::status::StatusCode;
@@ -153,31 +153,9 @@ pub async fn add_picture(
     (status, Json(results)).into_response()
 }
 
-pub async fn redirect_picture(Path(id): Path<String>) -> impl IntoResponse {
-    let url = get_delivery_url(
-        id.clone(),
-        Some(vec!["f_auto".to_string(), "q_auto".to_string()]),
-    );
-    println!("cloudinary url for symbole {}:{}", id, &url);
-
-    // Teste l'URL Cloudinary avant de rediriger
-    match reqwest::get(&url).await {
-        Ok(resp) if resp.status().is_success() => {
-            let bytes = resp.bytes().await.unwrap();
-            (
-                StatusCode::OK,
-                [("Content-Type", "image/jpeg")],
-                bytes.to_vec(),
-            )
-                .into_response()
-        }
-        Ok(resp) => {
-            eprintln!("Cloudinary error: status {} for {}", resp.status(), url);
-            (StatusCode::NOT_FOUND, "Image not found or inaccessible").into_response()
-        }
-        Err(e) => {
-            eprintln!("Cloudinary request failed: {} for {}", e, url);
-            (StatusCode::NOT_FOUND, "Image not found or inaccessible").into_response()
-        }
+pub async fn get_picture(Path(id): Path<String>) -> impl IntoResponse {
+    match crate::resources::cloudinary::get_picture(id).await {
+        Ok(bytes) => (StatusCode::OK, [("Content-Type", "image/jpeg")], bytes).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, e).into_response(),
     }
 }

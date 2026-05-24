@@ -1,3 +1,4 @@
+mod cache;
 mod db;
 mod encrypt;
 mod env;
@@ -11,7 +12,7 @@ mod token;
 use crate::db::falidex::relations::fix_relation_id;
 use crate::middleware::{verify_jwt_middleware, verify_token_middleware};
 use crate::routes::falidex;
-use crate::routes::falidex::symbole::{add_picture, redirect_picture};
+use crate::routes::falidex::symbole::{add_picture, get_picture};
 use crate::routes::{token::verify_hash, users::get_current_user};
 use crate::token::show_dev_ex_token;
 use axum::http::{
@@ -47,7 +48,7 @@ async fn main() {
     let token = Router::new()
         .route("/", get(root))
         .route("/auth", post(auth))
-        .route("/resource/{id}", get(redirect_picture))
+        .route("/resource/{id}", get(get_picture))
         .route("/user/id/{user_id}", get(get_user))
         .route("/collection/circulaires", get(falidex::circulaire::get))
         .route(

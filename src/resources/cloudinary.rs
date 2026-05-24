@@ -1,18 +1,12 @@
+use crate::cache::FileCache;
 use crate::env;
 use crate::resources::model::CloudinaryUploadResponse;
 use base64::prelude::*;
 use chrono::Utc;
-use cloudinary::tags::{Tag, get_tags};
-use cloudinary::upload::result::UploadResult;
-use cloudinary::upload::{DeliveryType, OptionalParameters, ResourceTypes, Source, Upload};
-use once_cell::sync::Lazy;
 use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
 use reqwest::{Client, multipart};
-use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::{Digest as Sha2Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
-use std::sync::Mutex;
-use std::time::{Duration, Instant};
 pub async fn upload_picture_for_symbole(
     file_bytes: Vec<u8>,
     filename: String,
@@ -34,14 +28,9 @@ pub async fn upload_picture_for_symbole(
         Ok(response) => {
             if let Some(id) = &response.public_id {
                 // Met à jour le cache du dossier concerné
-                /*let mut cache = ASSET_CACHE.lock().unwrap();
-                let now = Instant::now();
-                let entry = cache.entry(folder).or_insert_with(|| (now, Vec::new()));
-                // Ajoute l'id si absent
-                if !entry.1.contains(id) {
-                    entry.1.push(id.clone());
-                }
-                entry.0 = now;*/
+                // Reset le cache du symbole (clé = symbole_id)
+                let cache = FileCache::new(".app_temp/urls");
+                let _ = cache.delete(symbole_id).await;
                 Ok(id.clone())
             } else {
                 Err("Cloudinary: public_id manquant dans la réponse".to_string())
@@ -54,21 +43,7 @@ pub async fn upload_picture_for_symbole(
 
 pub async fn remove_picture() {}
 
-/*static ASSET_CACHE: Lazy<Mutex<HashMap<String, (Instant, Vec<String>)>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
-const CACHE_DURATION: Duration = Duration::from_secs(3600); // 1 hour*/
-
 pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
-    // Check cache first
-    /*{
-        let cache = ASSET_CACHE.lock().unwrap();
-        if let Some((instant, ids)) = cache.get(folder) {
-            if instant.elapsed() < CACHE_DURATION {
-                return Ok(ids.clone());
-            }
-        }
-    }*/
-
     // Not in cache or expired, fetch from Cloudinary
     let cloud_name = get_cloud_name();
     let api_key = get_api_key();
@@ -116,19 +91,19 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
         })
         .collect();
 
-    // Update cache
-    /*{
-        let mut cache = ASSET_CACHE.lock().unwrap();
-        cache.insert(folder.to_string(), (Instant::now(), ids.clone()));
-    }*/
-
     Ok(ids)
 }
 
 pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, String> {
-    if symbole_id != "symbole-112" {
+    // Garde-fou anti-rate-limit : on ne traite que symbole-112
+    /*if symbole_id != "symbole-112" {
         return Ok(Vec::new());
+    }*/
+    let cache = FileCache::new(".app_temp/urls");
+    if let Ok(Some(urls)) = cache.get::<Vec<String>>(&symbole_id).await {
+        return Ok(urls);
     }
+    // Si pas en cache, calcule et stocke
     let folder = format!("{}/{}/symbole-{}", get_app_tag(), "symbole", symbole_id);
     let result = get_asset_in_folder(&folder).await;
     println!("recherche d'img pour {}", symbole_id);
@@ -138,6 +113,8 @@ pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, Str
             if urls.is_empty() {
                 Err("Aucune image trouvée pour ce symbole".to_string())
             } else {
+                // Met en cache pour 1h (3600s)
+                let _ = cache.set(&symbole_id, &urls, 3600).await;
                 println!("success getting picture {:?}{}", urls.clone(), symbole_id);
                 Ok(urls)
             }
@@ -148,7 +125,36 @@ pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, Str
         }
     }
 }
-
+pub async fn get_picture(id_picture: String) -> Result<Vec<u8>, String> {
+    let cache = FileCache::new(".app_temp/pictures");
+    let cache_key = utf8_percent_encode(&id_picture, NON_ALPHANUMERIC).to_string();
+    if let Ok(Some(bytes)) = cache.get::<Vec<u8>>(&cache_key).await {
+        return Ok(bytes);
+    }
+    let url = get_delivery_url(
+        id_picture.clone(),
+        Some(vec!["f_auto".to_string(), "q_auto".to_string()]),
+    );
+    println!("cloudinary url for symbole {}", &url);
+    match reqwest::get(&url).await {
+        Ok(resp) if resp.status().is_success() => match resp.bytes().await {
+            Ok(bytes) => {
+                let bytes_vec = bytes.to_vec();
+                let _ = cache.set(&cache_key, &bytes_vec, 3600).await;
+                Ok(bytes_vec)
+            }
+            Err(e) => Err(format!("Erreur lecture image: {}", e)),
+        },
+        Ok(resp) => {
+            eprintln!("Cloudinary error: status {} for {}", resp.status(), url);
+            Err("Image not found or inaccessible".to_string())
+        }
+        Err(e) => {
+            eprintln!("Cloudinary request failed: {} for {}", e, url);
+            Err("Image not found or inaccessible".to_string())
+        }
+    }
+}
 fn get_api_key() -> String {
     "689958834963682".to_string()
 }
@@ -194,13 +200,10 @@ fn get_signature_upload(attribut_to_send: Option<HashMap<String, String>>) -> St
     hasher.update(to_serialize.as_bytes());
     hex::encode(hasher.finalize())
 }
-pub fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
-    use chrono::Utc;
-    let timestamp = Utc::now().timestamp();
+
+fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
     let param_url = get_delivery_param_url(id.clone(), attributs.clone());
-    // Ajoute le timestamp dans l'URL
-    //let param_url_with_ts = format!("t_{}/{}", timestamp, param_url);
-    let signature = get_delivery_signature(param_url.clone(), timestamp);
+    let signature = get_delivery_signature(param_url.clone());
     format!(
         "https://res.cloudinary.com/{}/image/authenticated/{}/{}",
         get_cloud_name(),
@@ -226,7 +229,7 @@ fn get_delivery_param_url(id: String, attributs: Option<Vec<String>>) -> String 
         url
     }
 }
-fn get_delivery_signature(param_url_delivery: String, timestamp: i64) -> String {
+fn get_delivery_signature(param_url_delivery: String) -> String {
     let mut hasher = Sha256::new();
     // Cloudinary attend que le timestamp soit dans la chaîne à signer
     let to_sign = format!("{}{}", param_url_delivery, get_api_key_secret());
