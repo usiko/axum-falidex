@@ -158,15 +158,5 @@ pub async fn get_picture(Path(id): Path<String>) -> impl IntoResponse {
         id.clone(),
         Some(vec!["f_auto".to_string(), "q_auto".to_string()]),
     );
-    match reqwest::get(&url).await {
-        Ok(resp) if resp.status().is_success() => Redirect::temporary(&url).into_response(),
-        Ok(resp) => {
-            eprintln!("Cloudinary error: status {} for {}", resp.status(), url);
-            (StatusCode::NOT_FOUND, "Image not found or inaccessible").into_response()
-        }
-        Err(e) => {
-            eprintln!("Cloudinary request failed: {} for {}", e, url);
-            (StatusCode::NOT_FOUND, "Image not found or inaccessible").into_response()
-        }
-    }
+    Redirect::temporary(&url).into_response()
 }
