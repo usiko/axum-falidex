@@ -162,7 +162,15 @@ pub async fn redirect_picture(Path(id): Path<String>) -> impl IntoResponse {
 
     // Teste l'URL Cloudinary avant de rediriger
     match reqwest::get(&url).await {
-        Ok(resp) if resp.status().is_success() => Redirect::temporary(&url).into_response(),
+        Ok(resp) if resp.status().is_success() => {
+            let bytes = resp.bytes().await.unwrap();
+            (
+                StatusCode::OK,
+                [("Content-Type", "image/jpeg")],
+                bytes.to_vec(),
+            )
+                .into_response()
+        }
         Ok(resp) => {
             eprintln!("Cloudinary error: status {} for {}", resp.status(), url);
             (StatusCode::NOT_FOUND, "Image not found or inaccessible").into_response()

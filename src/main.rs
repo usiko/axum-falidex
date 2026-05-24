@@ -41,13 +41,13 @@ async fn main() {
     let free = Router::new()
         .route("/token", post(verify_hash))
         .route("/collection/symboles/{id}/img/upload", post(add_picture))
-        .route("/resource/{id}", get(redirect_picture))
         .with_state(app_state.clone())
         .layer(cors.clone());
 
     let token = Router::new()
         .route("/", get(root))
         .route("/auth", post(auth))
+        .route("/resource/{id}", get(redirect_picture))
         .route("/user/id/{user_id}", get(get_user))
         .route("/collection/circulaires", get(falidex::circulaire::get))
         .route(
