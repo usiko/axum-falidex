@@ -10,6 +10,7 @@ use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode
 use reqwest::{Client, multipart};
 use sha2::{Digest as Sha2Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
+use uuid::Uuid;
 pub async fn upload_picture_for_symbole(
     file_bytes: Vec<u8>,
     filename: String,
@@ -29,14 +30,24 @@ pub async fn upload_picture_for_symbole(
     .await;
     match result {
         Ok(response) => {
-            if let Some(id) = &response.public_id {
+            if let (Some(public_id), Some(asset_id)) =
+                (response.public_id.clone(), response.asset_id.clone())
+            {
+                let asset_cache_id = FileCache::new(".app_temp/asset_cache_id");
+                let asset_cache_asset_id = FileCache::new(".app_temp/asset_cache_asset_id");
+                let asset = gen_cloudinary_asset(asset_id.clone(), public_id.clone(), None);
+                let _ = asset_cache_id.set(&asset.id, &asset, 24 * 3600).await;
+                let _ = asset_cache_asset_id
+                    .set(&asset.asset_id, &asset, 24 * 3600)
+                    .await;
+
                 // Met à jour le cache du dossier concerné
                 // Reset le cache du symbole (clé = symbole_id)
                 let cache = FileCache::new(".app_temp/urls");
                 let _ = cache.delete(symbole_id).await;
-                Ok(id.clone())
+                Ok(asset.id.clone())
             } else {
-                Err("Cloudinary: public_id manquant dans la réponse".to_string())
+                Err("Cloudinary: public_id ou asset_id manquant dans la réponse".to_string())
             }
         }
         Err(e) => Err(format!("Erreur HTTP: {}", e)),
@@ -89,14 +100,24 @@ pub async fn remove_picture(local_id: String) -> Result<String, String> {
     if status.is_success() && !is_not_found {
         // Suppression des caches associés
         let cache_urls = FileCache::new(".app_temp/urls");
-        let _ = cache_urls.delete(&local_id).await;
-
         let cache_delivery = FileCache::new(".app_temp/delivery_url");
-        let _ = cache_delivery.delete_partial(&local_id).await;
-
         let cache_pictures = FileCache::new(".app_temp/pictures");
+        let asset_cache_id = FileCache::new(".app_temp/asset_cache_id");
+        let asset_cache_asset_id = FileCache::new(".app_temp/asset_cache_asset_id");
 
+        let _ = cache_urls.delete(&local_id).await;
+        // Nettoie le cache d'URL : retire toutes les AssetUrl dont id == local_id dans toutes les entrées
+        let _ = cache_urls
+            .filter_all_lists::<AssetUrl, _>(|a| a.id != local_id)
+            .await;
+        let _ = cache_delivery.delete_partial(&local_id).await;
         let _ = cache_pictures.delete(&local_id).await;
+
+        let asset_id = get_asset_id_by_local_id(&local_id)
+            .await
+            .ok_or_else(|| "asset_id introuvable pour ce local_id".to_string())?;
+        let _ = asset_cache_id.delete(&local_id).await;
+        let _ = asset_cache_asset_id.delete(&asset_id).await;
 
         Ok(format!("Image supprimée: {}", local_id))
     } else {
@@ -140,38 +161,32 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<CloudinaryAssetWith
 
     let parsed: CloudinarySearchResponse =
         serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    use crate::resources::model::CloudinaryAssetWithId;
-    use uuid::Uuid;
     let asset_cache_asset_id = FileCache::new(".app_temp/asset_cache_asset_id");
     let asset_cache_id = FileCache::new(".app_temp/asset_cache_id");
 
-    let mut with_ids = Vec::new();
+    let mut assets = Vec::new();
     for asset in parsed.resources.iter() {
         let existing = asset_cache_asset_id
             .get::<CloudinaryAssetWithId>(&asset.asset_id)
             .await
             .ok()
             .flatten();
-        let id = if let Some(existing) = &existing {
-            existing.id.clone()
-        } else {
-            Uuid::new_v4().to_string()
-        };
-        let with_id = CloudinaryAssetWithId {
-            id: id.clone(),
-            public_id: asset.public_id.clone(),
-            asset_id: asset.asset_id.clone(),
-        };
+        let asset = gen_cloudinary_asset(
+            asset.asset_id.clone(),
+            asset.public_id.clone(),
+            existing.as_ref().map(|e| e.id.clone()),
+        );
+
         // Par asset_id
 
         let _ = asset_cache_asset_id
-            .set(&asset.asset_id, &with_id, 24 * 3600)
+            .set(&asset.asset_id, &asset, 24 * 3600)
             .await;
         // Par id (uuid)
-        let _ = asset_cache_id.set(&id, &with_id, 24 * 3600).await;
-        with_ids.push(with_id);
+        let _ = asset_cache_id.set(&asset.id, &asset, 24 * 3600).await;
+        assets.push(asset);
     }
-    Ok(with_ids)
+    Ok(assets)
 }
 
 pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<AssetUrl>, String> {
@@ -407,5 +422,17 @@ async fn upload_picture(
         Err(err.message.clone())
     } else {
         Ok(parsed)
+    }
+}
+
+fn gen_cloudinary_asset(
+    asset_id: String,
+    public_id: String,
+    id: Option<String>,
+) -> CloudinaryAssetWithId {
+    CloudinaryAssetWithId {
+        id: id.unwrap_or(Uuid::new_v4().to_string()),
+        public_id: public_id,
+        asset_id: asset_id,
     }
 }

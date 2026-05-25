@@ -14,6 +14,55 @@ pub struct FileCache {
 }
 
 impl FileCache {
+    /// Filtre toutes les listes du cache (toutes les clés) selon un prédicat, et met à jour ou supprime la clé si la liste devient vide
+    pub async fn filter_all_lists<T, F>(&self, mut predicate: F) -> Result<(), String>
+    where
+        T: for<'de> Deserialize<'de> + Serialize,
+        F: FnMut(&T) -> bool,
+    {
+        let mut dir = fs::read_dir(&self.base_path)
+            .await
+            .map_err(|e| e.to_string())?;
+        while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
+            let path = entry.path();
+            if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                if filename.ends_with(".json") {
+                    let key = filename.trim_end_matches(".json");
+                    if let Some(mut list) = self.get::<Vec<T>>(key).await? {
+                        let original_len = list.len();
+                        list.retain(|item| predicate(item));
+                        if list.len() != original_len {
+                            if list.is_empty() {
+                                let _ = self.delete(key).await;
+                            } else {
+                                let _ = self.set(key, list, 3600).await;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+    /// Filtre une liste stockée en cache (clé) selon un prédicat, et met à jour ou supprime la clé si la liste devient vide
+    pub async fn filter_list<T, F>(&self, key: &str, mut predicate: F) -> Result<(), String>
+    where
+        T: for<'de> Deserialize<'de> + Serialize,
+        F: FnMut(&T) -> bool,
+    {
+        if let Some(mut list) = self.get::<Vec<T>>(key).await? {
+            let original_len = list.len();
+            list.retain(|item| predicate(item));
+            if list.len() != original_len {
+                if list.is_empty() {
+                    let _ = self.delete(key).await;
+                } else {
+                    let _ = self.set(key, list, 3600).await;
+                }
+            }
+        }
+        Ok(())
+    }
     /// Recherche une entrée dans le cache selon un prédicat sur la valeur (fallback générique)
     pub async fn find_by<T, F>(&self, mut predicate: F) -> Result<Option<T>, String>
     where
