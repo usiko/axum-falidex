@@ -46,6 +46,12 @@ pub struct CloudinaryAsset {
     pub public_id: String,
     pub asset_id: String,
 }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CloudinaryAssetWithId {
+    pub id: String,        // uuid v4
+    pub public_id: String, // cloudinary public_id
+    pub asset_id: String,  // cloudinary asset_id
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CloudinarySearchResponse {

@@ -41,9 +41,6 @@ async fn main() {
     let cors = get_cors();
     let free = Router::new()
         .route("/token", post(verify_hash))
-        .route("/resource/{height}/{width}/{id}", get(get_picture))
-        .route("/collection/symboles/{id}/img/upload", post(add_picture))
-        .route("/resource/remove/{id}", delete(resource::remove))
         .with_state(app_state.clone())
         .layer(cors.clone());
 
@@ -51,6 +48,12 @@ async fn main() {
         .route("/", get(root))
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
+        .route("/resource/{height}/{width}/{id}", get(get_picture))
+        .route(
+            "/collection/symboles/{id}/resource/upload",
+            post(add_picture),
+        )
+        .route("/resource/remove/{id}", delete(resource::remove))
         .route("/collection/circulaires", get(falidex::circulaire::get))
         .route(
             "/collection/circulaires/occurence/{id}",

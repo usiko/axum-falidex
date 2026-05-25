@@ -14,6 +14,42 @@ pub struct FileCache {
 }
 
 impl FileCache {
+    /// Recherche une entrée dans le cache selon un prédicat sur la valeur (fallback générique)
+    pub async fn find_by<T, F>(&self, mut predicate: F) -> Result<Option<T>, String>
+    where
+        T: for<'de> Deserialize<'de>,
+        F: FnMut(&T) -> bool,
+    {
+        let mut dir = fs::read_dir(&self.base_path)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
+            let path = entry.path();
+            // Ignore les fichiers qui ne sont pas des .json
+            if let Some(ext) = path.extension() {
+                if ext != "json" {
+                    continue;
+                }
+            }
+            let data = match fs::read_to_string(&path).await {
+                Ok(d) => d,
+                Err(_) => continue,
+            };
+            let entry: CacheEntry<T> = match serde_json::from_str(&data) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            if Self::now() > entry.expires_at {
+                let _ = fs::remove_file(&path).await;
+                continue;
+            }
+            if predicate(&entry.value) {
+                return Ok(Some(entry.value));
+            }
+        }
+        Ok(None)
+    }
     // Supprime toutes les entrées dont la clé contient la sous-chaîne donnée
     pub async fn delete_partial(&self, partial_key: &str) -> Result<(), String> {
         let mut dir = fs::read_dir(&self.base_path)

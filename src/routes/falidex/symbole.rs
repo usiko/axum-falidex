@@ -154,7 +154,7 @@ pub async fn add_picture(
 }
 
 pub async fn get_picture(Path((id, height, width)): Path<(String, u16, u16)>) -> impl IntoResponse {
-    let url = get_delivery_url(
+    let url_opt = get_delivery_url(
         id.clone(),
         Some(vec![
             format!("w_{}", width),
@@ -164,6 +164,16 @@ pub async fn get_picture(Path((id, height, width)): Path<(String, u16, u16)>) ->
         ]),
     )
     .await;
-    println!("Redirecto to {}", url);
-    Redirect::temporary(&url).into_response()
+
+    match url_opt {
+        Some(url) => Redirect::temporary(&url).into_response(),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "success": false,
+                "error": "Image non trouvée ou inaccessible"
+            })),
+        )
+            .into_response(),
+    }
 }
