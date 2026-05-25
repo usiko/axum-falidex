@@ -134,7 +134,8 @@ pub async fn get_picture(id_picture: String) -> Result<Vec<u8>, String> {
     let url = get_delivery_url(
         id_picture.clone(),
         Some(vec!["f_auto".to_string(), "q_auto".to_string()]),
-    );
+    )
+    .await;
     println!("cloudinary url for symbole {}", &url);
     match reqwest::get(&url).await {
         Ok(resp) if resp.status().is_success() => match resp.bytes().await {
@@ -156,15 +157,24 @@ pub async fn get_picture(id_picture: String) -> Result<Vec<u8>, String> {
     }
 }
 
-pub fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
+/// Retourne l'URL de livraison Cloudinary, avec cache persistant (clé hashée, TTL 1h)
+pub async fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
+    use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+    let cache_key = utf8_percent_encode(&id, NON_ALPHANUMERIC).to_string();
+    let cache = FileCache::new(".app_temp/delivery_url");
+    if let Ok(Some(url)) = cache.get::<String>(&cache_key).await {
+        return url;
+    }
     let param_url = get_delivery_param_url(id.clone(), attributs.clone());
     let signature = get_delivery_signature(param_url.clone());
-    format!(
+    let url = format!(
         "https://res.cloudinary.com/{}/image/authenticated/{}/{}",
         get_cloud_name(),
         signature,
         param_url
-    )
+    );
+    let _ = cache.set(&cache_key, &url, 3600).await;
+    url
 }
 
 fn get_api_key() -> String {
