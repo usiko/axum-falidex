@@ -1,5 +1,5 @@
 use crate::env;
-use crate::resources::model::CloudinaryUploadResponse;
+use crate::resources::model::{CloudinaryUploadResponse, DeleteParams};
 use crate::{cache::FileCache, resources::model::AssetUrl};
 use base64::prelude::*;
 use chrono::Utc;
@@ -41,7 +41,43 @@ pub async fn upload_picture_for_symbole(
     //upload_data_url(data_url, tags).await // temp
 }
 
-pub async fn remove_picture() {}
+pub async fn remove_picture(id: String) -> Result<String, String> {
+    let timestamp = Utc::now().timestamp();
+    let decoded_id = percent_decode_str(&id)
+        .decode_utf8()
+        .map_err(|e| format!("Erreur décodage id: {}", e))?
+        .to_string();
+    let url = format!(
+        "https://api.cloudinary.com/v1_1/{}/image/destroy",
+        get_cloud_name()
+    );
+    let client = Client::new();
+    let mut attributes: HashMap<String, String> = HashMap::new();
+    attributes.insert("public_id".to_string(), decoded_id.clone());
+    attributes.insert("api_key".to_string(), get_api_key());
+    attributes.insert("timestamp".to_string(), timestamp.to_string());
+    let res = client
+        .post(&url)
+        .json(&DeleteParams {
+            public_id: decoded_id.clone(),
+            api_key: get_api_key(),
+            signature: get_signature_upload(Some(attributes)),
+            timestamp: timestamp.to_string(),
+        })
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = res.status();
+    let text = res.text().await.unwrap_or_default();
+    if status.is_success() {
+        Ok(format!("Image supprimée: {}", decoded_id))
+    } else {
+        Err(format!(
+            "Erreur suppression Cloudinary ({}): {}",
+            status, text
+        ))
+    }
+}
 
 pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
     // Not in cache or expired, fetch from Cloudinary
@@ -113,6 +149,7 @@ pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<AssetUrl>, S
                 .iter()
                 .map(|id| {
                     return AssetUrl {
+                        id: id.clone(),
                         url: format!("/resource/{}/800/800", id),
                         thumbnail: format!("/resource/{}/100/100", id),
                     };
@@ -261,7 +298,6 @@ fn get_delivery_param_url(id: String, attributs: Option<Vec<String>>) -> String 
 }
 fn get_delivery_signature(param_url_delivery: String) -> String {
     let mut hasher = Sha256::new();
-    // Cloudinary attend que le timestamp soit dans la chaîne à signer
     let to_sign = format!("{}{}", param_url_delivery, get_api_key_secret());
     println!("get delivery signature {}", &to_sign);
     hasher.update(to_sign.as_bytes());

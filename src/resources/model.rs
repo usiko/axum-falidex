@@ -30,6 +30,14 @@ pub struct CloudinaryError {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AssetUrl {
+    pub id: String,
     pub url: String,
     pub thumbnail: String,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DeleteParams {
+    pub public_id: String,
+    pub signature: String,
+    pub api_key: String,
+    pub timestamp: String,
 }
