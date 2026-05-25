@@ -1,6 +1,6 @@
-use crate::cache::FileCache;
 use crate::env;
 use crate::resources::model::CloudinaryUploadResponse;
+use crate::{cache::FileCache, resources::model::AssetUrl};
 use base64::prelude::*;
 use chrono::Utc;
 use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
@@ -94,13 +94,13 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
     Ok(ids)
 }
 
-pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, String> {
+pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<AssetUrl>, String> {
     // Garde-fou anti-rate-limit : on ne traite que symbole-112
-    /*if symbole_id != "symbole-112" {
+    if symbole_id != "symbole-112" {
         return Ok(Vec::new());
-    }*/
+    }
     let cache = FileCache::new(".app_temp/urls");
-    if let Ok(Some(urls)) = cache.get::<Vec<String>>(&symbole_id).await {
+    if let Ok(Some(urls)) = cache.get::<Vec<AssetUrl>>(&symbole_id).await {
         return Ok(urls);
     }
     // Si pas en cache, calcule et stocke
@@ -109,7 +109,15 @@ pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, Str
     println!("recherche d'img pour {}", symbole_id);
     match result {
         Ok(tags) => {
-            let urls: Vec<String> = tags.iter().map(|id| format!("/resource/{}", id)).collect();
+            let urls: Vec<AssetUrl> = tags
+                .iter()
+                .map(|id| {
+                    return AssetUrl {
+                        url: format!("/resource/{}/800/800", id),
+                        thumbnail: format!("/resource/{}/100/100", id),
+                    };
+                })
+                .collect();
             if urls.is_empty() {
                 Err("Aucune image trouvée pour ce symbole".to_string())
             } else {
@@ -125,7 +133,7 @@ pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<String>, Str
         }
     }
 }
-pub async fn get_picture(id_picture: String) -> Result<Vec<u8>, String> {
+pub async fn get_picture(id_picture: String, height: u16, width: u16) -> Result<Vec<u8>, String> {
     let cache = FileCache::new(".app_temp/pictures");
     let cache_key = utf8_percent_encode(&id_picture, NON_ALPHANUMERIC).to_string();
     if let Ok(Some(bytes)) = cache.get::<Vec<u8>>(&cache_key).await {
@@ -133,7 +141,12 @@ pub async fn get_picture(id_picture: String) -> Result<Vec<u8>, String> {
     }
     let url = get_delivery_url(
         id_picture.clone(),
-        Some(vec!["f_auto".to_string(), "q_auto".to_string()]),
+        Some(vec![
+            format!("w_{}", width),
+            format!("h_{}", height),
+            "f_auto".to_string(),
+            "q_auto".to_string(),
+        ]),
     )
     .await;
     println!("cloudinary url for symbole {}", &url);
@@ -160,9 +173,15 @@ pub async fn get_picture(id_picture: String) -> Result<Vec<u8>, String> {
 /// Retourne l'URL de livraison Cloudinary, avec cache persistant (clé hashée, TTL 1h)
 pub async fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> String {
     use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
-    let cache_key = utf8_percent_encode(&id, NON_ALPHANUMERIC).to_string();
+
+    let cache_key = format!(
+        "{}-{}",
+        attributs.clone().unwrap_or_default().join(","),
+        &id
+    );
+    let encoded_cache_key = utf8_percent_encode(&cache_key, NON_ALPHANUMERIC).to_string();
     let cache = FileCache::new(".app_temp/delivery_url");
-    if let Ok(Some(url)) = cache.get::<String>(&cache_key).await {
+    if let Ok(Some(url)) = cache.get::<String>(&encoded_cache_key).await {
         return url;
     }
     let param_url = get_delivery_param_url(id.clone(), attributs.clone());
@@ -173,7 +192,7 @@ pub async fn get_delivery_url(id: String, attributs: Option<Vec<String>>) -> Str
         signature,
         param_url
     );
-    let _ = cache.set(&cache_key, &url, 3600).await;
+    let _ = cache.set(&encoded_cache_key, &url, 3600).await;
     url
 }
 

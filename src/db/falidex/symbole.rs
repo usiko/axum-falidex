@@ -29,8 +29,8 @@ pub async fn get(db: &Database) -> Result<Vec<Symbole>, String> {
             imgs: Some(
                 urls.into_iter()
                     .map(|url| Img {
-                        id: url.clone(),
-                        url,
+                        id: url.url.clone(),
+                        url: url.url,
                     })
                     .collect(),
             ),

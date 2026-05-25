@@ -153,11 +153,17 @@ pub async fn add_picture(
     (status, Json(results)).into_response()
 }
 
-pub async fn get_picture(Path(id): Path<String>) -> impl IntoResponse {
+pub async fn get_picture(Path((id, height, width)): Path<(String, u16, u16)>) -> impl IntoResponse {
     let url = get_delivery_url(
         id.clone(),
-        Some(vec!["f_auto".to_string(), "q_auto".to_string()]),
+        Some(vec![
+            format!("w_{}", width),
+            format!("h_{}", height),
+            "f_auto".to_string(),
+            "q_auto".to_string(),
+        ]),
     )
     .await;
+    println!("Redirecto to {}", url);
     Redirect::temporary(&url).into_response()
 }

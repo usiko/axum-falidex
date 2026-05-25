@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 pub struct CloudinaryUploadResponse {
@@ -26,4 +26,10 @@ pub struct CloudinaryUploadResponse {
 #[derive(Debug, Deserialize)]
 pub struct CloudinaryError {
     pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AssetUrl {
+    pub url: String,
+    pub thumbnail: String,
 }
