@@ -14,6 +14,22 @@ pub struct FileCache {
 }
 
 impl FileCache {
+    // Supprime toutes les entrées dont la clé contient la sous-chaîne donnée
+    pub async fn delete_partial(&self, partial_key: &str) -> Result<(), String> {
+        let mut dir = fs::read_dir(&self.base_path)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
+            let path = entry.path();
+            if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                if filename.contains(partial_key) {
+                    let _ = fs::remove_file(&path).await;
+                }
+            }
+        }
+        Ok(())
+    }
     pub fn new(base_path: &str) -> Self {
         let path = PathBuf::from(base_path);
         std::fs::create_dir_all(&path).ok();

@@ -1,5 +1,7 @@
 use crate::env;
-use crate::resources::model::{CloudinaryUploadResponse, DeleteParams};
+use crate::resources::model::{
+    CloudinaryAsset, CloudinarySearchResponse, CloudinaryUploadResponse, DeleteParams,
+};
 use crate::{cache::FileCache, resources::model::AssetUrl};
 use base64::prelude::*;
 use chrono::Utc;
@@ -48,38 +50,65 @@ pub async fn remove_picture(id: String) -> Result<String, String> {
         .map_err(|e| format!("Erreur décodage id: {}", e))?
         .to_string();
     let url = format!(
-        "https://api.cloudinary.com/v1_1/{}/image/destroy",
+        "https://api.cloudinary.com/v1_1/{}/asset/destroy",
         get_cloud_name()
     );
     let client = Client::new();
     let mut attributes: HashMap<String, String> = HashMap::new();
-    attributes.insert("public_id".to_string(), decoded_id.clone());
+    attributes.insert("asset_id".to_string(), decoded_id.clone());
     attributes.insert("api_key".to_string(), get_api_key());
     attributes.insert("timestamp".to_string(), timestamp.to_string());
+    let params = DeleteParams {
+        asset_id: decoded_id.clone(),
+        api_key: get_api_key(),
+        signature: get_signature_upload(Some(attributes)),
+        timestamp: timestamp.to_string(),
+    };
     let res = client
         .post(&url)
-        .json(&DeleteParams {
-            public_id: decoded_id.clone(),
-            api_key: get_api_key(),
-            signature: get_signature_upload(Some(attributes)),
-            timestamp: timestamp.to_string(),
-        })
+        .json(&params)
         .send()
         .await
         .map_err(|e| e.to_string())?;
     let status = res.status();
     let text = res.text().await.unwrap_or_default();
-    if status.is_success() {
+    let json_value: serde_json::Value = serde_json::from_str(&text)
+        .unwrap_or_else(|_| serde_json::json!({"error": "invalid json"}));
+    println!(
+        "delete picture response: {} {:?} {:?}",
+        &url, params, json_value
+    );
+    let is_not_found = json_value
+        .get("result")
+        .and_then(|v| v.as_str())
+        .map(|s| s == "not found")
+        .unwrap_or(false);
+    if is_not_found {
+        return Err("not found".to_string());
+    }
+    if status.is_success() && !is_not_found {
+        // Suppression des caches associés
+        let cache_urls = FileCache::new(".app_temp/urls");
+        let _ = cache_urls.delete(&decoded_id).await;
+
+        let cache_delivery = FileCache::new(".app_temp/delivery_url");
+        let _ = cache_delivery.delete_partial(&decoded_id).await;
+
+        let cache_pictures = FileCache::new(".app_temp/pictures");
+        let cache_key = utf8_percent_encode(&decoded_id, NON_ALPHANUMERIC).to_string();
+        let _ = cache_pictures.delete(&cache_key).await;
+
         Ok(format!("Image supprimée: {}", decoded_id))
     } else {
         Err(format!(
-            "Erreur suppression Cloudinary ({}): {}",
-            status, text
+            "Erreur suppression Cloudinary ({}): {json_value:?}",
+            status
         ))
     }
 }
 
-pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
+pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<CloudinaryAsset>, String> {
+    //
     // Not in cache or expired, fetch from Cloudinary
     let cloud_name = get_cloud_name();
     let api_key = get_api_key();
@@ -108,26 +137,10 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<String>, String> {
     if !status.is_success() {
         return Err(format!("Cloudinary search error: {}", text));
     }
-    #[derive(serde::Deserialize)]
-    struct CloudinarySearchResponse {
-        resources: Vec<CloudinaryAsset>,
-    }
-    #[derive(serde::Deserialize)]
-    struct CloudinaryAsset {
-        public_id: String,
-    }
+
     let parsed: CloudinarySearchResponse =
         serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    let ids: Vec<String> = parsed
-        .resources
-        .into_iter()
-        .map(|asset| {
-            // Ne garder que le dernier segment de l'id (après le dernier '/')
-            utf8_percent_encode(&asset.public_id, NON_ALPHANUMERIC).to_string()
-        })
-        .collect();
-
-    Ok(ids)
+    Ok(parsed.resources)
 }
 
 pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<AssetUrl>, String> {
@@ -147,12 +160,14 @@ pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<AssetUrl>, S
         Ok(tags) => {
             let urls: Vec<AssetUrl> = tags
                 .iter()
-                .map(|id| {
-                    return AssetUrl {
-                        id: id.clone(),
-                        url: format!("/resource/{}/800/800", id),
-                        thumbnail: format!("/resource/{}/100/100", id),
-                    };
+                .map(|asset| {
+                    let parsed_public_id =
+                        utf8_percent_encode(&asset.public_id, NON_ALPHANUMERIC).to_string();
+                    AssetUrl {
+                        id: asset.asset_id.clone(),
+                        url: format!("/resource/{}/800/800", &parsed_public_id),
+                        thumbnail: format!("/resource/{}/100/100", &parsed_public_id),
+                    }
                 })
                 .collect();
             if urls.is_empty() {
