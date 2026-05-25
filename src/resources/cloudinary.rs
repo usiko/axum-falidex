@@ -6,7 +6,6 @@ use crate::resources::model::{
 use crate::{cache::FileCache, resources::model::AssetUrl};
 use base64::prelude::*;
 use chrono::Utc;
-use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
 use reqwest::{Client, multipart};
 use sha2::{Digest as Sha2Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -171,7 +170,7 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<CloudinaryAssetWith
             .await
             .ok()
             .flatten();
-        let asset = gen_cloudinary_asset(
+        let cloudinary_asset = gen_cloudinary_asset(
             asset.asset_id.clone(),
             asset.public_id.clone(),
             existing.as_ref().map(|e| e.id.clone()),
@@ -180,11 +179,13 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<CloudinaryAssetWith
         // Par asset_id
 
         let _ = asset_cache_asset_id
-            .set(&asset.asset_id, &asset, 24 * 3600)
+            .set(&cloudinary_asset.asset_id, &cloudinary_asset, 24 * 3600)
             .await;
         // Par id (uuid)
-        let _ = asset_cache_id.set(&asset.id, &asset, 24 * 3600).await;
-        assets.push(asset);
+        let _ = asset_cache_id
+            .set(&cloudinary_asset.id, &cloudinary_asset, 24 * 3600)
+            .await;
+        assets.push(cloudinary_asset);
     }
     Ok(assets)
 }
@@ -270,10 +271,10 @@ pub async fn get_picture(local_id: String, height: u16, width: u16) -> Result<Ve
 /// Retourne l'URL de livraison Cloudinary, avec cache persistant (clé hashée, TTL 1h)
 pub async fn get_delivery_url(local_id: String, attributs: Option<Vec<String>>) -> Option<String> {
     let public_id = get_public_id_by_local_id(&local_id).await?;
-    let cache = FileCache::new(".app_temp/delivery_url");
-    if let Ok(Some(url)) = cache.get::<String>(&local_id).await {
+    //let cache = FileCache::new(".app_temp/delivery_url");
+    /*  if let Ok(Some(url)) = cache.get::<String>(&local_id).await {
         return Some(url);
-    }
+    }*/
     let param_url = get_delivery_param_url(public_id.clone(), attributs.clone());
     let signature = get_delivery_signature(param_url.clone());
     let url = format!(
@@ -282,7 +283,7 @@ pub async fn get_delivery_url(local_id: String, attributs: Option<Vec<String>>) 
         signature,
         param_url
     );
-    let _ = cache.set(&local_id, &url, 3600).await;
+    //let _ = cache.set(&local_id, &url, 3600).await;
     Some(url)
 }
 
@@ -357,16 +358,12 @@ fn get_signature_upload(attribut_to_send: Option<HashMap<String, String>>) -> St
 fn get_delivery_param_url(id: String, attributs: Option<Vec<String>>) -> String {
     println!("get delivery param url {},{:?}", &id, &attributs);
     let attributes_string = attributs.unwrap_or_default().join("/");
-    let decoded_id = percent_decode_str(&id)
-        .decode_utf8()
-        .expect("Invalid UTF-8")
-        .to_string();
     if attributes_string.is_empty() {
-        let url = format!("{}", decoded_id);
+        let url = format!("{}", id);
         println!("delivery param url {}", &url);
         url
     } else {
-        let url = format!("{}/{}", attributes_string, decoded_id);
+        let url = format!("{}/{}", attributes_string, id);
         println!("delivery param url {}", &url);
         url
     }
