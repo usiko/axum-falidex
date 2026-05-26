@@ -14,6 +14,23 @@ pub struct FileCache {
 }
 
 impl FileCache {
+    /// Liste toutes les clés présentes dans le cache (fichiers .json)
+    pub async fn list_keys(&self) -> Result<Vec<String>, String> {
+        let mut keys = Vec::new();
+        let mut dir = fs::read_dir(&self.base_path)
+            .await
+            .map_err(|e| e.to_string())?;
+        while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
+            let path = entry.path();
+            if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                if filename.ends_with(".json") {
+                    let key = filename.trim_end_matches(".json").to_string();
+                    keys.push(key);
+                }
+            }
+        }
+        Ok(keys)
+    }
     /// Filtre toutes les listes du cache (toutes les clés) selon un prédicat, et met à jour ou supprime la clé si la liste devient vide
     pub async fn filter_all_lists<T, F>(&self, mut predicate: F) -> Result<(), String>
     where

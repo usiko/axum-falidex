@@ -105,10 +105,20 @@ pub async fn remove_picture(local_id: String) -> Result<String, String> {
         let asset_cache_asset_id = FileCache::new(".app_temp/asset_cache_asset_id");
 
         let _ = cache_urls.delete(&local_id).await;
-        // Nettoie le cache d'URL : retire toutes les AssetUrl dont id == local_id dans toutes les entrées
-        let _ = cache_urls
-            .filter_all_lists::<AssetUrl, _>(|a| a.id != local_id)
-            .await;
+        // Supprime complètement l'entrée qui contient un AssetUrl avec id == local_id
+        if let Ok(keys) = cache_urls.list_keys().await {
+            for key in keys {
+                let urls_result = cache_urls.get::<Vec<AssetUrl>>(&key).await;
+
+                if let Ok(Some(urls)) = urls_result {
+                    let should_delete = urls.iter().any(|a| a.id == local_id);
+
+                    if should_delete {
+                        let _ = cache_urls.delete(&key).await;
+                    }
+                }
+            }
+        }
         let _ = cache_delivery.delete_partial(&local_id).await;
         let _ = cache_pictures.delete(&local_id).await;
 
