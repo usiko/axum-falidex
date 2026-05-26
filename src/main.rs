@@ -48,7 +48,7 @@ async fn main() {
         .route("/", get(root))
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
-        .route("/resource/{height}/{width}/{id}", get(get_picture))
+        .route("/resource/{id}/{height}/{width}", get(get_picture))
         .route(
             "/collection/symboles/{id}/resource/upload",
             post(add_picture),
