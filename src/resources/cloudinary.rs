@@ -374,7 +374,7 @@ fn get_delivery_signature(param_url_delivery: String) -> String {
     println!("get delivery signature {}", &to_sign);
     hasher.update(to_sign.as_bytes());
 
-    let hash = BASE64_STANDARD.encode(hasher.finalize());
+    let hash = BASE64_URL_SAFE_NO_PAD.encode(hasher.finalize());
     println!("get delivery hash {}", &hash);
     format!("s--{}--", hash.chars().take(8).collect::<String>())
 }
