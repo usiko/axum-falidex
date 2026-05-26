@@ -49,11 +49,6 @@ async fn main() {
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
         .route("/resource/{id}/{height}/{width}", get(get_picture))
-        .route(
-            "/collection/symboles/{id}/resource/upload",
-            post(add_picture),
-        )
-        .route("/resource/remove/{id}", delete(resource::remove))
         .route("/collection/circulaires", get(falidex::circulaire::get))
         .route(
             "/collection/circulaires/occurence/{id}",
@@ -194,7 +189,12 @@ async fn main() {
         .route(
             "/collection/symboles/{id}",
             put(falidex::symbole::update).delete(falidex::symbole::delete),
-        );
+        )
+        .route(
+            "/collection/symboles/{id}/resource/upload",
+            post(add_picture),
+        )
+        .route("/resource/remove/{id}", delete(resource::remove));
 
     let edit_route_falidex_symbole_accessoire = Router::new()
         .route(
