@@ -25,9 +25,7 @@ pub async fn get(db: &Database) -> Result<Vec<Symbole>, String> {
 
     let futures = symboles.into_iter().map(|item| async move {
         // migration existing picture to cloundinary
-        if let Some(img_list) = item.imgs
-            && item.id == "symbole-112"
-        {
+        if let Some(img_list) = item.imgs {
             for img in img_list {
                 println!("try to migrate {},{}", item.id.clone(), img.url);
                 let res = migrate_symbole_img(db, img, item.id.clone()).await;

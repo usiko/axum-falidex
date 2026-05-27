@@ -172,9 +172,9 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<CloudinaryAssetWith
 
 pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<AssetUrl>, String> {
     // Garde-fou anti-rate-limit : on ne traite que symbole-112
-    if symbole_id != "symbole-112" {
+    /*if symbole_id != "symbole-112" {
         return Ok(Vec::new());
-    }
+    }*/
     let cache = FileCache::new(".app_temp/urls");
     if let Ok(Some(urls)) = cache.get::<Vec<AssetUrl>>(&symbole_id).await {
         return Ok(urls);
