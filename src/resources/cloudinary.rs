@@ -20,7 +20,7 @@ pub async fn upload_picture_for_symbole(
     let tags = Vec::from(["symbole".to_string(), symbole_tag.clone()]);
     //attributes.
     let folder = format!("{}/{}/{}", get_app_tag(), "symbole", symbole_tag);
-    let result = upload_picture(
+    let result = upload_file_picture(
         file_bytes,
         filename,
         "falidex".to_string(),
@@ -375,33 +375,69 @@ fn get_delivery_signature(param_url_delivery: String) -> String {
     format!("s--{}--", hash.chars().take(8).collect::<String>())
 }
 
-async fn upload_picture(
-    file_bytes: Vec<u8>,
-    filename: String,
+fn get_upload_attributes(
     preset: String,
     folder: String,
     tags: Vec<String>,
-) -> Result<CloudinaryUploadResponse, String> {
-    let url = format!(
-        "https://api.cloudinary.com/v1_1/{}/image/upload",
-        get_cloud_name()
-    );
-    let timestamp = Utc::now().timestamp();
-    let client = Client::new();
+    timestamp: i64,
+    public_id: Option<String>,
+) -> HashMap<String, String> {
     let mut attributes: HashMap<String, String> = HashMap::new();
     attributes.insert("upload_preset".to_string(), preset);
     attributes.insert("folder".to_string(), folder);
     attributes.insert("tags".to_string(), tags.join(","));
     attributes.insert("api_key".to_string(), get_api_key());
     attributes.insert("timestamp".to_string(), timestamp.to_string());
+
+    if let Some(id) = public_id {
+        attributes.insert("public_id".to_string(), id);
+    }
+
     let signature = get_write_signature(Some(attributes.clone()));
     attributes.insert("signature".to_string(), signature);
+    attributes
+}
+
+async fn upload_file_picture(
+    file_bytes: Vec<u8>,
+    filename: String,
+    preset: String,
+    folder: String,
+    tags: Vec<String>,
+) -> Result<CloudinaryUploadResponse, String> {
     let multipart = multipart::Part::bytes(file_bytes).file_name(filename);
     let mut form = multipart::Form::new().part("file", multipart);
+    send_upload_picture(form, preset, folder, tags, None).await
+}
+async fn upload_url_picture(
+    remmote_url: String,
+    preset: String,
+    folder: String,
+    tags: Vec<String>,
+    public_id: String,
+) -> Result<CloudinaryUploadResponse, String> {
+    let mut form = multipart::Form::new();
+    form = form.text("file", remmote_url);
+    send_upload_picture(form, preset, folder, tags, Some(public_id)).await
+}
+
+async fn send_upload_picture(
+    mut form: multipart::Form,
+    preset: String,
+    folder: String,
+    tags: Vec<String>,
+    public_id: Option<String>,
+) -> Result<CloudinaryUploadResponse, String> {
+    let timestamp = Utc::now().timestamp();
+    let attributes = get_upload_attributes(preset, folder, tags, timestamp, public_id);
     for (key, value) in &attributes {
         form = form.text(key.clone(), value.clone());
     }
-    println!("upload to cloudinary {} {:?}", &url, attributes);
+    let url = format!(
+        "https://api.cloudinary.com/v1_1/{}/image/upload",
+        get_cloud_name()
+    );
+    let client = Client::new();
     let response = client
         .post(&url)
         .multipart(form)
