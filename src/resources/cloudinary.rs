@@ -10,11 +10,12 @@ use reqwest::{Client, multipart};
 use sha2::{Digest as Sha2Digest, Sha256};
 use std::collections::{BTreeSet, HashMap, HashSet};
 use uuid::Uuid;
+//
 pub async fn upload_picture_for_symbole(
     file_bytes: Vec<u8>,
     filename: String,
     symbole_id: &str,
-) -> Result<String, String> {
+) -> Result<AssetUrl, String> {
     let symbole_tag = format!("symbole-{}", symbole_id);
     let tags = Vec::from(["symbole".to_string(), symbole_tag.clone()]);
     //attributes.
@@ -44,7 +45,7 @@ pub async fn upload_picture_for_symbole(
                 // Reset le cache du symbole (clé = symbole_id)
                 let cache = FileCache::new(".app_temp/urls");
                 let _ = cache.delete(symbole_id).await;
-                Ok(asset.id.clone())
+                Ok(get_asset_url_from_local_id(asset.id.clone()))
             } else {
                 Err("Cloudinary: public_id ou asset_id manquant dans la réponse".to_string())
             }
@@ -71,7 +72,7 @@ pub async fn remove_picture(local_id: String) -> Result<String, String> {
     let params = DeleteParams {
         asset_id: asset_id.clone(),
         api_key: get_api_key(),
-        signature: get_signature_upload(Some(attributes)),
+        signature: get_write_signature(Some(attributes)),
         timestamp: timestamp.to_string(),
     };
     let res = client
@@ -206,11 +207,7 @@ pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<AssetUrl>, S
         Ok(tags) => {
             let urls: Vec<AssetUrl> = tags
                 .iter()
-                .map(|asset| AssetUrl {
-                    id: asset.id.clone(),
-                    url: format!("/resource/{}/800/800", asset.id.clone()),
-                    thumbnail: format!("/resource/{}/100/100", asset.id.clone()),
-                })
+                .map(|asset| get_asset_url_from_local_id(asset.id.clone()))
                 .collect();
             if urls.is_empty() {
                 Err("Aucune image trouvée pour ce symbole".to_string())
@@ -327,7 +324,7 @@ fn get_app_tag() -> String {
 /**
  * generate signature for cloudinary
  */
-fn get_signature_upload(attribut_to_send: Option<HashMap<String, String>>) -> String {
+fn get_write_signature(attribut_to_send: Option<HashMap<String, String>>) -> String {
     let not_allowed_keys = std::collections::HashSet::from([
         "file",
         "cloud_name",
@@ -397,7 +394,7 @@ async fn upload_picture(
     attributes.insert("tags".to_string(), tags.join(","));
     attributes.insert("api_key".to_string(), get_api_key());
     attributes.insert("timestamp".to_string(), timestamp.to_string());
-    let signature = get_signature_upload(Some(attributes.clone()));
+    let signature = get_write_signature(Some(attributes.clone()));
     attributes.insert("signature".to_string(), signature);
     let multipart = multipart::Part::bytes(file_bytes).file_name(filename);
     let mut form = multipart::Form::new().part("file", multipart);
@@ -430,5 +427,13 @@ fn gen_cloudinary_asset(
         id: id.unwrap_or(Uuid::new_v4().to_string()),
         public_id: public_id,
         asset_id: asset_id,
+    }
+}
+
+fn get_asset_url_from_local_id(local_id: String) -> AssetUrl {
+    AssetUrl {
+        id: local_id.clone(),
+        url: format!("/resource/{}/800/800", local_id.clone()),
+        thumbnail: format!("/resource/{}/100/100", local_id.clone()),
     }
 }

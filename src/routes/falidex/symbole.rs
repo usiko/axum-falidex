@@ -1,5 +1,6 @@
 use super::model::{SymboleCreateReq, SymboleUpdateReq};
 use crate::resources::cloudinary::{get_delivery_url, upload_picture_for_symbole};
+use crate::resources::model::AssetUrl;
 use crate::{db::falidex::symbole, routes::users::AppClaims, state::AppState};
 use axum::extract::Multipart;
 use axum::http::status::StatusCode;
@@ -118,8 +119,8 @@ pub async fn get_occurences(State(state): State<AppState>, Path(id): Path<String
 pub async fn add_picture(
     Path(symbole_id): Path<String>,
     mut multipart: Multipart,
-) -> impl IntoResponse {
-    let mut results = Vec::new();
+) -> (StatusCode, Json<Vec<AssetUrl>>) {
+    let mut results = Vec::<AssetUrl>::new();
     let mut has_error = false;
     let mut has_success = false;
     while let Some(mut field) = multipart.next_field().await.unwrap() {
@@ -131,13 +132,12 @@ pub async fn add_picture(
         let result = upload_picture_for_symbole(file_bytes, filename, &symbole_id).await;
 
         match result {
-            Ok(id) => {
+            Ok(asset) => {
                 has_success = true;
-                results.push(json!({"success": true, "id": id}))
+                results.push(asset)
             }
             Err(e) => {
                 has_error = true;
-                results.push(json!({"success": false, "error": e}))
             }
         }
     }
@@ -150,7 +150,7 @@ pub async fn add_picture(
     } else {
         StatusCode::OK
     };
-    (status, Json(results)).into_response()
+    (status, Json(results))
 }
 
 pub async fn get_picture(Path((id, height, width)): Path<(String, u16, u16)>) -> impl IntoResponse {
