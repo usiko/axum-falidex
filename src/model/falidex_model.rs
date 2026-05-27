@@ -212,6 +212,7 @@ pub struct UpdateSymboleSens {
 pub struct Img {
     pub id: String,
     pub url: String,
+    pub migrated: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]

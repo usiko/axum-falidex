@@ -409,16 +409,22 @@ async fn upload_file_picture(
     let mut form = multipart::Form::new().part("file", multipart);
     send_upload_picture(form, preset, folder, tags, None).await
 }
-async fn upload_url_picture(
+pub async fn upload_url_picture(
     remmote_url: String,
     preset: String,
     folder: String,
     tags: Vec<String>,
-    public_id: String,
 ) -> Result<CloudinaryUploadResponse, String> {
     let mut form = multipart::Form::new();
     form = form.text("file", remmote_url);
-    send_upload_picture(form, preset, folder, tags, Some(public_id)).await
+    send_upload_picture(
+        form,
+        preset,
+        format!("{}/{}", get_app_tag(), folder),
+        tags,
+        None,
+    )
+    .await
 }
 
 async fn send_upload_picture(
