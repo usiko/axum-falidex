@@ -29,27 +29,7 @@ pub async fn upload_picture_for_symbole(
     )
     .await;
     match result {
-        Ok(response) => {
-            if let (Some(public_id), Some(asset_id)) =
-                (response.public_id.clone(), response.asset_id.clone())
-            {
-                let asset_cache_id = FileCache::new(".app_temp/asset_cache_id");
-                let asset_cache_asset_id = FileCache::new(".app_temp/asset_cache_asset_id");
-                let asset = gen_cloudinary_asset(asset_id.clone(), public_id.clone(), None);
-                let _ = asset_cache_id.set(&asset.id, &asset, 24 * 3600).await;
-                let _ = asset_cache_asset_id
-                    .set(&asset.asset_id, &asset, 24 * 3600)
-                    .await;
-
-                // Met à jour le cache du dossier concerné
-                // Reset le cache du symbole (clé = symbole_id)
-                let cache = FileCache::new(".app_temp/urls");
-                let _ = cache.delete(symbole_id).await;
-                Ok(get_asset_url_from_local_id(asset.id.clone()))
-            } else {
-                Err("Cloudinary: public_id ou asset_id manquant dans la réponse".to_string())
-            }
-        }
+        Ok(response) => update_cache_after_upload(response, &symbole_id).await,
         Err(e) => Err(format!("Erreur HTTP: {}", e)),
     }
     //upload_data_url(data_url, tags).await // temp
@@ -417,14 +397,27 @@ pub async fn upload_url_picture(
 ) -> Result<CloudinaryUploadResponse, String> {
     let mut form = multipart::Form::new();
     form = form.text("file", remmote_url);
-    send_upload_picture(
-        form,
-        preset,
-        format!("{}/{}", get_app_tag(), folder),
-        tags,
-        None,
-    )
-    .await
+    send_upload_picture(form, preset, folder, tags, None).await
+}
+
+pub async fn migrate_picture_for_symbole(
+    symbole_id: &str,
+    remote_url: &str,
+) -> Result<AssetUrl, String> {
+    let symbole_tag = format!("symbole-{}", symbole_id);
+    let tags = Vec::from([
+        "migration".to_string(),
+        "symbole".to_string(),
+        symbole_tag.clone(),
+    ]);
+    //attributes.
+    let folder = format!("{}/{}/{}", get_app_tag(), "symbole", symbole_tag);
+    let result =
+        upload_url_picture(remote_url.to_string(), "falidex".to_string(), folder, tags).await;
+    match result {
+        Ok(response) => update_cache_after_upload(response, symbole_id).await,
+        Err(error) => Err(error),
+    }
 }
 
 async fn send_upload_picture(
@@ -477,5 +470,30 @@ fn get_asset_url_from_local_id(local_id: String) -> AssetUrl {
         id: local_id.clone(),
         url: format!("/resource/{}/800/800", local_id.clone()),
         thumbnail: format!("/resource/{}/100/100", local_id.clone()),
+    }
+}
+
+async fn update_cache_after_upload(
+    response: CloudinaryUploadResponse,
+    symbole_id: &str,
+) -> Result<AssetUrl, String> {
+    if let (Some(public_id), Some(asset_id)) =
+        (response.public_id.clone(), response.asset_id.clone())
+    {
+        let asset_cache_id = FileCache::new(".app_temp/asset_cache_id");
+        let asset_cache_asset_id = FileCache::new(".app_temp/asset_cache_asset_id");
+        let asset = gen_cloudinary_asset(asset_id.clone(), public_id.clone(), None);
+        let _ = asset_cache_id.set(&asset.id, &asset, 24 * 3600).await;
+        let _ = asset_cache_asset_id
+            .set(&asset.asset_id, &asset, 24 * 3600)
+            .await;
+
+        // Met à jour le cache du dossier concerné
+        // Reset le cache du symbole (clé = symbole_id)
+        let cache = FileCache::new(".app_temp/urls");
+        let _ = cache.delete(symbole_id).await;
+        Ok(get_asset_url_from_local_id(asset.id.clone()))
+    } else {
+        Err("Cloudinary: public_id ou asset_id manquant dans la réponse".to_string())
     }
 }

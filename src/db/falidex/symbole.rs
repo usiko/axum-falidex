@@ -4,7 +4,9 @@ use crate::db::falidex::symbole;
 use crate::model::falidex_model::{
     CreateSymbole, Img, LinkDetail, OccurenceDetail, Symbole, UpdateSymbole,
 };
-use crate::resources::cloudinary::{get_urls_for_symbole, upload_url_picture};
+use crate::resources::cloudinary::{
+    get_urls_for_symbole, migrate_picture_for_symbole, upload_url_picture,
+};
 use futures::TryFutureExt;
 use futures::future::join_all;
 use futures::stream::TryStreamExt;
@@ -191,25 +193,13 @@ async fn migrate_symbole_img(
             "https://resources.falidex.fr/index.php?getPicture={}&littleSalty=iBhodGT6GTqS6Bb",
             fixed_url_img
         );
-        let symbole_tag = format!("symbole-{}", symbole_id);
-        let tags = Vec::from([
-            "migration".to_string(),
-            "symbole".to_string(),
-            symbole_tag.clone(),
-        ]);
-        //attributes.
-        let folder = format!("{}/{}", "symbole", symbole_tag);
-        let result_upload =
-            upload_url_picture(remote_url, "falidex".to_string(), folder, tags).await;
+
+        let result_upload = migrate_picture_for_symbole(&symbole_id, &remote_url).await;
         match result_upload {
             Ok(response) => {
                 let result_update = set_picture_migrated(db, img, symbole_id.clone()).await;
                 match result_update {
-                    Ok(response) => {
-                        let cache = FileCache::new(".app_temp/urls");
-                        let _ = cache.delete(&symbole_id);
-                        Ok(format!("finaly migrate pic {}", response))
-                    }
+                    Ok(response) => Ok(format!("finaly migrate pic {:?}", response)),
                     Err(error) => Err(format!("Error updating picture {}", error)),
                 }
             }
