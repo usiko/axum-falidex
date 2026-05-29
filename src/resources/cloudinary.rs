@@ -298,7 +298,7 @@ fn get_cloud_name() -> String {
 }
 
 fn get_app_tag() -> String {
-    env::get_app_resource_tag()
+    env::get_cloudinary_main_folder()
 }
 
 /**
