@@ -3,18 +3,23 @@ mod db;
 mod encrypt;
 mod env;
 mod middleware;
+mod migrate;
 mod model;
 mod resources;
 mod routes;
 mod state;
 mod token;
 
+use std::time::Duration;
+
 use crate::db::falidex::relations::fix_relation_id;
 use crate::middleware::{verify_jwt_middleware, verify_token_middleware};
+use crate::migrate::migrate_symboles_imgs;
+use crate::resources::cloudinary;
 use crate::routes::falidex::symbole::{add_picture, get_picture};
-use crate::routes::resource::test_remote_url;
 use crate::routes::{falidex, resource};
 use crate::routes::{token::verify_hash, users::get_current_user};
+use crate::state::AppState;
 use crate::token::show_dev_ex_token;
 use axum::http::{
     Method,
@@ -28,26 +33,37 @@ use axum::{
 use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
+use tokio::time::interval;
 use tower_http::cors::{Any, CorsLayer};
 #[tokio::main]
 async fn main() {
     show_dev_ex_token("visitor");
-
     let app_state = get_state().await;
-    match fix_relation_id(&app_state.db.db).await {
-        Ok(msg) => println!("Fix relation IDs: {}", msg),
-        Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
-    }
+    let fix_relation_state = app_state.clone();
+    let webserver_state = app_state.clone();
+    let migration_state = app_state.clone();
+    tokio::spawn(async move {
+        match fix_relation_id(&fix_relation_state.db.db).await {
+            Ok(msg) => println!("Fix relation IDs: {}", msg),
+            Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
+        }
+    });
+    tokio::spawn(async move {
+        migrate_symboles_imgs(&migration_state).await;
+    });
+    tokio::spawn(async move { clean_cache_expired().await });
+    init_webserver(webserver_state).await
+}
 
+async fn init_webserver(app_state: AppState) {
+    cloudinary::clean_cache_expired();
     let cors = get_cors();
     let free = Router::new()
         .route("/token", post(verify_hash))
-        .route("/test_remote_upload", get(test_remote_url))
         .with_state(app_state.clone())
         .layer(cors.clone());
 
     let token = Router::new()
-        .route("/", get(root))
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
         .route("/resource/{id}/{height}/{width}", get(get_picture))
@@ -258,32 +274,13 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn root() -> String {
-    let base_message = "this is a rust web server!";
-
-    let weather = match get_current_weather().await {
-        Ok(w) => w,
-        Err(e) => {
-            eprintln!("Erreur lors de la récupération de la météo : {}", e);
-            return format!("{} Impossible de récupérer la météo.", base_message);
-        }
-    };
-
-    // weather est déjà une String, pas besoin de unwrap
-    format!("{}\n{}", base_message, weather)
-}
-
-async fn get_current_weather() -> Result<String, reqwest::Error> {
-    let url = format!(
-        "https://api.openweathermap.org/data/2.5/weather?lat=43.0&lon=6.6&appid={}",
-        "eb0b873a85379b2759eda56604289ce1"
-    );
-    let response = reqwest::get(url).await?;
-
-    let body = response.text().await?;
-    println!("{}", body);
-
-    Ok(body)
+async fn clean_cache_expired() {
+    let mut interval = interval(Duration::from_mins(15));
+    cloudinary::clean_cache_expired();
+    loop {
+        interval.tick().await;
+        cloudinary::clean_cache_expired();
+    }
 }
 
 fn get_cors() -> CorsLayer {

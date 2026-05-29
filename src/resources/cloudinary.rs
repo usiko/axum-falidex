@@ -29,7 +29,7 @@ pub async fn upload_picture_for_symbole(
     )
     .await;
     match result {
-        Ok(response) => update_cache_after_upload(response, &symbole_id).await,
+        Ok(response) => update_cache_after_upload(response, &symbole_id, true).await,
         Err(e) => Err(format!("Erreur HTTP: {}", e)),
     }
     //upload_data_url(data_url, tags).await // temp
@@ -170,7 +170,7 @@ pub async fn get_asset_in_folder(folder: &str) -> Result<Vec<CloudinaryAssetWith
     Ok(assets)
 }
 
-pub async fn get_urls_for_symbole(symbole_id: String) -> Result<Vec<AssetUrl>, String> {
+pub async fn get_urls_for_symbole(symbole_id: &str) -> Result<Vec<AssetUrl>, String> {
     // Garde-fou anti-rate-limit : on ne traite que symbole-112
     /*if symbole_id != "symbole-112" {
         return Ok(Vec::new());
@@ -415,7 +415,7 @@ pub async fn migrate_picture_for_symbole(
     let result =
         upload_url_picture(remote_url.to_string(), "falidex".to_string(), folder, tags).await;
     match result {
-        Ok(response) => update_cache_after_upload(response, symbole_id).await,
+        Ok(response) => update_cache_after_upload(response, symbole_id, false).await,
         Err(error) => Err(error),
     }
 }
@@ -476,6 +476,7 @@ fn get_asset_url_from_local_id(local_id: String) -> AssetUrl {
 async fn update_cache_after_upload(
     response: CloudinaryUploadResponse,
     symbole_id: &str,
+    delete_cache_url: bool,
 ) -> Result<AssetUrl, String> {
     if let (Some(public_id), Some(asset_id)) =
         (response.public_id.clone(), response.asset_id.clone())
@@ -490,10 +491,26 @@ async fn update_cache_after_upload(
 
         // Met à jour le cache du dossier concerné
         // Reset le cache du symbole (clé = symbole_id)
-        let cache = FileCache::new(".app_temp/urls");
-        let _ = cache.delete(symbole_id).await;
+
+        if delete_cache_url {
+            let cache = FileCache::new(".app_temp/urls");
+            let _ = cache.delete(symbole_id).await;
+        }
         Ok(get_asset_url_from_local_id(asset.id.clone()))
     } else {
         Err("Cloudinary: public_id ou asset_id manquant dans la réponse".to_string())
+    }
+}
+
+pub fn clean_cache_expired() {
+    let caches = Vec::<FileCache>::from([
+        FileCache::new(".app_temp/asset_cache_id"),
+        FileCache::new(".app_temp/asset_cache_asset_id"),
+        FileCache::new(".app_temp/urls"),
+        FileCache::new(".app_temp/delivery_url"),
+        FileCache::new(".app_temp/pictures"),
+    ]);
+    for cache in caches {
+        let _ = cache.clean_expired();
     }
 }

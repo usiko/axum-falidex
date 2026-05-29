@@ -1,5 +1,8 @@
 use super::model::{SymboleCreateReq, SymboleUpdateReq};
-use crate::resources::cloudinary::{get_delivery_url, upload_picture_for_symbole};
+use crate::model::falidex_model::{Img, Symbole};
+use crate::resources::cloudinary::{
+    get_delivery_url, get_urls_for_symbole, upload_picture_for_symbole,
+};
 use crate::resources::model::AssetUrl;
 use crate::{db::falidex::symbole, routes::users::AppClaims, state::AppState};
 use axum::extract::Multipart;
@@ -11,11 +14,32 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_jwt::Claims;
+use futures::future::join_all;
 use serde_json::json;
 
 pub async fn get(State(state): State<AppState>) -> Response {
     match symbole::get(&state.db.db).await {
-        Ok(symboles) => Json(symboles).into_response(),
+        Ok(symboles) => {
+            let futures = symboles.into_iter().map(|symbole| async move {
+                let urls = get_urls_for_symbole(&symbole.id)
+                    .await
+                    .unwrap_or_else(|_| vec![]);
+                let imgs = urls
+                    .into_iter()
+                    .map(|a| Img {
+                        id: a.id,
+                        url: a.url,
+                        migrated: None,
+                    })
+                    .collect();
+                Symbole {
+                    imgs: Some(imgs),
+                    ..symbole
+                }
+            });
+            let adapted: Vec<Symbole> = join_all(futures).await;
+            Json(adapted).into_response()
+        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Failed to get: {e}"),
