@@ -43,13 +43,19 @@ async fn main() {
     let webserver_state = app_state.clone();
     let migration_state = app_state.clone();
     tokio::spawn(async move {
-        match fix_relation_id(&fix_relation_state.db.db).await {
-            Ok(msg) => println!("Fix relation IDs: {}", msg),
-            Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
+        let is_activated = env::is_fix_relation_id_activated();
+        if (is_activated) {
+            match fix_relation_id(&fix_relation_state.db.db).await {
+                Ok(msg) => println!("Fix relation IDs: {}", msg),
+                Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
+            }
         }
     });
     tokio::spawn(async move {
-        migrate_symboles_imgs(&migration_state).await;
+        let is_activated = env::is_migration_img_activated();
+        if (is_activated) {
+            migrate_symboles_imgs(&migration_state).await;
+        }
     });
     tokio::spawn(async move { clean_cache_expired().await });
     init_webserver(webserver_state).await

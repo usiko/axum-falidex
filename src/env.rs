@@ -34,6 +34,9 @@ pub fn get_cloudinary_api_key() -> String {
 pub fn get_cloudinary_api_secret_key() -> String {
     get_env_value("CLOUDINARY_API_SECRET_KEY", None)
 }
+pub fn get_cloudinary_cloud_name() -> String {
+    get_env_value("CLOUDINARY_CLOUD_NAME", None)
+}
 
 pub fn is_migration_img_activated() -> bool {
     let value = get_env_value("MIGRATION_IMG", Some("false".to_string()));

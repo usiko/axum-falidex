@@ -285,22 +285,6 @@ pub async fn get_asset_id_by_local_id(id: &str) -> Option<String> {
     None
 }
 
-fn get_api_key() -> String {
-    "689958834963682".to_string()
-}
-
-fn get_api_key_secret() -> String {
-    "2P388YE0UgTXbYUi_3Mip8Q6_FQ".to_string()
-}
-
-fn get_cloud_name() -> String {
-    "dbtqrsibv".to_string()
-}
-
-fn get_app_tag() -> String {
-    env::get_cloudinary_main_folder()
-}
-
 /**
  * generate signature for cloudinary
  */
@@ -513,4 +497,20 @@ pub fn clean_cache_expired() {
     for cache in caches {
         let _ = cache.clean_expired();
     }
+}
+
+fn get_api_key() -> String {
+    env::get_cloudinary_api_key()
+}
+
+fn get_api_key_secret() -> String {
+    env::get_cloudinary_api_secret_key()
+}
+
+fn get_cloud_name() -> String {
+    env::get_cloudinary_cloud_name()
+}
+
+fn get_app_tag() -> String {
+    env::get_cloudinary_main_folder()
 }

@@ -6,6 +6,7 @@
 | `JWT_SECRET` | Secret pour la signature des tokens JWT | — | ✅ Oui |
 | `TOKEN_HASH_KEY` | Clé de hachage des tokens | — | ✅ Oui |
 | `DERIVATE_TOKEN_HASH_KEY` | Clé de hachage dérivée des tokens | — | ✅ Oui |
+| `CLOUDINARY_CLOUD_NAME` | Identifiant du cloud cloudinrary | — | ✅ Oui |
 | `CLOUDINARY_API_KEY` | Clé API Cloudinary | — | ✅ Oui |
 | `CLOUDINARY_API_SECRET_KEY` | Clé secrète API Cloudinary | — | ✅ Oui |
 | `PORT` | Port d'écoute du serveur | `3000` | Non |
