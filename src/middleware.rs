@@ -22,22 +22,11 @@ pub async fn verify_token_middleware(
         .get("X-Token")
         .and_then(|value| value.to_str().ok());
 
-    // Vérifier si le token existe, est valide et que le cookie associé est aussi valide
+    // Vérifier si le token existe et est valide
     match token {
         Some(token_str) => {
-            if let Some(cookie) = state.security_store.verify_token(token_str) {
-                // Vérifie aussi la validité du cookie associé
-                if state.security_store.verify_cookie(&cookie).is_some() {
-                    Ok(next.run(request).await)
-                } else {
-                    // Révoque le token si le cookie n'est plus valide
-                    state.security_store.revoke_by_token(token_str);
-                    let error = ErrorResult {
-                        error: "UNAUTHORIZED".to_string(),
-                        message: "Associated cookie invalid or expired".to_string(),
-                    };
-                    Err((StatusCode::UNAUTHORIZED, Json(error)))
-                }
+            if state.security_store.verify_stored_token(token_str) {
+                Ok(next.run(request).await)
             } else {
                 let error = ErrorResult {
                     error: "UNAUTHORIZED".to_string(),
@@ -155,20 +144,12 @@ pub async fn verify_cookie_middleware(
     }
     match unique_id {
         Some(cookie_val) => {
-            if let Some(token) = state.security_store.verify_cookie(cookie_val) {
+            if state.security_store.verify_stored_cookie(cookie_val) {
                 // Vérifie aussi la validité du token associé
-                if state.security_store.verify_token(&token).is_some() {
-                    Ok(next.run(request).await)
-                } else {
-                    // Révoque le cookie si le token n'est plus valide
-                    state.security_store.revoke_by_cookie(cookie_val);
-                    let error = ErrorResult {
-                        error: "UNAUTHORIZED".to_string(),
-                        message: "Associated token invalid or expired".to_string(),
-                    };
-                    Err((StatusCode::UNAUTHORIZED, Json(error)))
-                }
+                println!("ok cookie");
+                Ok(next.run(request).await)
             } else {
+                println!("bad cookie {}", cookie_val);
                 let error = ErrorResult {
                     error: "UNAUTHORIZED".to_string(),
                     message: "Invalid or expired cookie".to_string(),
@@ -177,6 +158,7 @@ pub async fn verify_cookie_middleware(
             }
         }
         None => {
+            println!("no cookie");
             let error = ErrorResult {
                 error: "UNAUTHORIZED".to_string(),
                 message: "Missing unique_id cookie".to_string(),
