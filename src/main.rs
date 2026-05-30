@@ -30,6 +30,7 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
 };
+use dotenvy::dotenv;
 use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
@@ -37,6 +38,7 @@ use tokio::time::interval;
 use tower_http::cors::{Any, CorsLayer};
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     show_dev_ex_token("visitor");
     let app_state = get_state().await;
     let fix_relation_state = app_state.clone();
@@ -44,7 +46,7 @@ async fn main() {
     let migration_state = app_state.clone();
     tokio::spawn(async move {
         let is_activated = env::is_fix_relation_id_activated();
-        if (is_activated) {
+        if is_activated {
             match fix_relation_id(&fix_relation_state.db.db).await {
                 Ok(msg) => println!("Fix relation IDs: {}", msg),
                 Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
@@ -53,7 +55,7 @@ async fn main() {
     });
     tokio::spawn(async move {
         let is_activated = env::is_migration_img_activated();
-        if (is_activated) {
+        if is_activated {
             migrate_symboles_imgs(&migration_state).await;
         }
     });

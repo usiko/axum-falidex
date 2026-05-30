@@ -1,3 +1,6 @@
+use dotenvy::dotenv;
+use std::env;
+
 pub fn get_encrypt_key() -> String {
     get_env_value("ENCRYPT_KEY", None)
 }
@@ -50,7 +53,7 @@ pub fn is_fix_relation_id_activated() -> bool {
 
 fn get_env_value(key: &str, default: Option<String>) -> String {
     match default {
-        Some(default_val) => match std::env::var(&key) {
+        Some(default_val) => match env::var(&key) {
             Ok(val) => val,
             Err(_) => {
                 println!(
@@ -62,7 +65,7 @@ fn get_env_value(key: &str, default: Option<String>) -> String {
         },
         None => {
             let error_message = format!("⚠️ {} non définie", key);
-            std::env::var(key).expect(&error_message)
+            env::var(key).expect(&error_message)
         }
     }
 }
