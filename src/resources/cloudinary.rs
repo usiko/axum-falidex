@@ -452,7 +452,7 @@ fn gen_cloudinary_asset(
 fn get_asset_url_from_local_id(local_id: String) -> AssetUrl {
     AssetUrl {
         id: local_id.clone(),
-        url: format!("/resource/{}/800/800", local_id.clone()),
+        url: format!("/resource/{}/800/800", local_id.clone()), //cloudinary direct?
         thumbnail: format!("/resource/{}/100/100", local_id.clone()),
     }
 }

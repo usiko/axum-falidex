@@ -22,11 +22,22 @@ pub async fn verify_token_middleware(
         .get("X-Token")
         .and_then(|value| value.to_str().ok());
 
-    // Vérifier si le token existe et est valide
+    // Vérifier si le token existe, est valide et que le cookie associé est aussi valide
     match token {
         Some(token_str) => {
-            if state.token_store.verify_stored_token(token_str) {
-                Ok(next.run(request).await)
+            if let Some(cookie) = state.security_store.verify_token(token_str) {
+                // Vérifie aussi la validité du cookie associé
+                if state.security_store.verify_cookie(&cookie).is_some() {
+                    Ok(next.run(request).await)
+                } else {
+                    // Révoque le token si le cookie n'est plus valide
+                    state.security_store.revoke_by_token(token_str);
+                    let error = ErrorResult {
+                        error: "UNAUTHORIZED".to_string(),
+                        message: "Associated cookie invalid or expired".to_string(),
+                    };
+                    Err((StatusCode::UNAUTHORIZED, Json(error)))
+                }
             } else {
                 let error = ErrorResult {
                     error: "UNAUTHORIZED".to_string(),
@@ -115,6 +126,60 @@ pub async fn verify_jwt_middleware(
             let error = ErrorResult {
                 error: "JWT_MISSING".to_string(),
                 message: "Le header Authorization avec le token JWT est manquant.".to_string(),
+            };
+            Err((StatusCode::UNAUTHORIZED, Json(error)))
+        }
+    }
+}
+
+pub async fn verify_cookie_middleware(
+    State(state): State<AppState>,
+    request: Request,
+    next: Next,
+) -> Result<Response, impl IntoResponse> {
+    // Récupérer l'en-tête Cookie
+    let cookie_header = request
+        .headers()
+        .get("cookie")
+        .and_then(|v| v.to_str().ok());
+    let mut unique_id: Option<&str> = None;
+    if let Some(header) = cookie_header {
+        // Chercher unique_id=... dans la chaîne de cookies
+        for cookie in header.split(';') {
+            let cookie = cookie.trim();
+            if let Some(val) = cookie.strip_prefix("unique_id=") {
+                unique_id = Some(val);
+                break;
+            }
+        }
+    }
+    match unique_id {
+        Some(cookie_val) => {
+            if let Some(token) = state.security_store.verify_cookie(cookie_val) {
+                // Vérifie aussi la validité du token associé
+                if state.security_store.verify_token(&token).is_some() {
+                    Ok(next.run(request).await)
+                } else {
+                    // Révoque le cookie si le token n'est plus valide
+                    state.security_store.revoke_by_cookie(cookie_val);
+                    let error = ErrorResult {
+                        error: "UNAUTHORIZED".to_string(),
+                        message: "Associated token invalid or expired".to_string(),
+                    };
+                    Err((StatusCode::UNAUTHORIZED, Json(error)))
+                }
+            } else {
+                let error = ErrorResult {
+                    error: "UNAUTHORIZED".to_string(),
+                    message: "Invalid or expired cookie".to_string(),
+                };
+                Err((StatusCode::UNAUTHORIZED, Json(error)))
+            }
+        }
+        None => {
+            let error = ErrorResult {
+                error: "UNAUTHORIZED".to_string(),
+                message: "Missing unique_id cookie".to_string(),
             };
             Err((StatusCode::UNAUTHORIZED, Json(error)))
         }

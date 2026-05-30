@@ -1,18 +1,30 @@
-use axum::{Json, extract::State};
-use reqwest::StatusCode;
+use axum::http::{
+    StatusCode,
+    header::{HeaderValue, SET_COOKIE},
+};
+use axum::{
+    Json,
+    extract::State,
+    response::{IntoResponse, Response},
+};
 
+use crate::security_utils::verify_temp_token;
 use crate::{
     db::model::{ErrorResult, TokenAuth, TokenAuthResponse},
     state::AppState,
-    token::verify_temp_token,
 };
 pub async fn verify_hash(
     State(state): State<AppState>,
     Json(payload): Json<TokenAuth>,
-) -> Result<Json<TokenAuthResponse>, (StatusCode, Json<ErrorResult>)> {
+) -> Result<Response, (StatusCode, Json<ErrorResult>)> {
     if verify_temp_token(&payload.role, payload.timestamp, &payload.hash) {
-        let token = state.token_store.generate_and_store();
-        Ok(Json(TokenAuthResponse { token }))
+        let (token, cookie_value) = state.security_store.generate_and_store();
+        let cookie = format!("unique_id={}; HttpOnly; SameSite=Lax; Path=/", cookie_value);
+        let mut response = Json(TokenAuthResponse { token }).into_response();
+        response
+            .headers_mut()
+            .insert(SET_COOKIE, HeaderValue::from_str(&cookie).unwrap());
+        Ok(response)
     } else {
         let error = ErrorResult {
             error: "UNAUTHORIZED".to_string(),

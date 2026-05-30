@@ -181,8 +181,10 @@ pub async fn get_picture(Path((id, height, width)): Path<(String, u16, u16)>) ->
     let url_opt = get_delivery_url(
         id.clone(),
         Some(vec![
+            "c_thumb".to_string(),
             format!("w_{}", width),
             format!("h_{}", height),
+            "g_auto".to_string(),
             "f_auto".to_string(),
             "q_auto".to_string(),
         ]),

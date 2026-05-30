@@ -1,15 +1,16 @@
 use axum::extract::FromRef;
 use axum_jwt::{Decoder, jsonwebtoken::DecodingKey};
+use uuid::Uuid;
 
 use crate::db::mongo::MongoDB;
-use crate::token::TokenStore;
+use crate::security_utils::SecurityStore;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: Arc<MongoDB>,
     pub jwt_decoder: Decoder,
-    pub token_store: Arc<TokenStore>,
+    pub security_store: Arc<SecurityStore>,
 }
 
 impl FromRef<AppState> for Decoder {
@@ -23,7 +24,7 @@ pub async fn get_state() -> AppState {
     AppState {
         db: Arc::new(db),
         jwt_decoder: get_jwt_decoder(),
-        token_store: Arc::new(TokenStore::new()),
+        security_store: Arc::new(SecurityStore::new()),
     }
 }
 

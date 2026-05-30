@@ -7,20 +7,19 @@ mod migrate;
 mod model;
 mod resources;
 mod routes;
+mod security_utils;
 mod state;
-mod token;
 
 use std::time::Duration;
 
 use crate::db::falidex::relations::fix_relation_id;
-use crate::middleware::{verify_jwt_middleware, verify_token_middleware};
+use crate::middleware::{verify_cookie_middleware, verify_jwt_middleware, verify_token_middleware};
 use crate::migrate::migrate_symboles_imgs;
 use crate::resources::cloudinary;
 use crate::routes::falidex::symbole::{add_picture, get_picture};
 use crate::routes::{falidex, resource};
 use crate::routes::{token::verify_hash, users::get_current_user};
 use crate::state::AppState;
-use crate::token::show_dev_ex_token;
 use axum::http::{
     Method,
     header::{AUTHORIZATION, CONTENT_TYPE},
@@ -39,7 +38,6 @@ use tower_http::cors::{Any, CorsLayer};
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    show_dev_ex_token("visitor");
     let app_state = get_state().await;
     let fix_relation_state = app_state.clone();
     let webserver_state = app_state.clone();
@@ -64,17 +62,23 @@ async fn main() {
 }
 
 async fn init_webserver(app_state: AppState) {
-    cloudinary::clean_cache_expired();
     let cors = get_cors();
     let free = Router::new()
         .route("/token", post(verify_hash))
         .with_state(app_state.clone())
         .layer(cors.clone());
+    let cookie_protected = Router::new()
+        .route("/resource/{id}/{height}/{width}", get(get_picture))
+        .with_state(app_state.clone())
+        .layer(from_fn_with_state(
+            app_state.clone(),
+            verify_cookie_middleware,
+        ))
+        .layer(cors.clone());
 
     let token = Router::new()
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
-        .route("/resource/{id}/{height}/{width}", get(get_picture))
         .route("/collection/circulaires", get(falidex::circulaire::get))
         .route(
             "/collection/circulaires/occurence/{id}",
@@ -273,7 +277,7 @@ async fn init_webserver(app_state: AppState) {
         .with_state(app_state.clone())
         .layer(from_fn_with_state(app_state, verify_jwt_middleware))
         .layer(cors);
-    let app = free.merge(token).merge(protected);
+    let app = free.merge(cookie_protected).merge(token).merge(protected);
     // run our app with hyper, listening on the PORT environment variable (for Heroku) or 3000 by default
     let port = crate::env::get_port();
     let addr = format!("0.0.0.0:{}", port);
