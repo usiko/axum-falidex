@@ -9,7 +9,8 @@ use reqwest::{StatusCode, header::SET_COOKIE};
 
 use crate::{
     db::model::{ErrorResult, TokenAuth, TokenAuthResponse},
-    security_utils::verify_temp_token,
+    env,
+    security_utils::{SecurityStoreAutorization, verify_temp_token},
     state::AppState,
 };
 pub async fn verify_hash(
@@ -18,10 +19,7 @@ pub async fn verify_hash(
 ) -> Result<Response, (StatusCode, Json<ErrorResult>)> {
     if verify_temp_token(&payload.role, payload.timestamp, &payload.hash) {
         let autorisation = state.security_store.generate_and_store();
-        let cookie = format!(
-            "Set-Cookie: unique_id={}; Path=/; HttpOnly; SameSite=None; Secure",
-            autorisation.cookie
-        );
+        let cookie = gen_cookie(autorisation.clone());
         let mut response = Json(TokenAuthResponse {
             token: autorisation.token,
         })
@@ -36,5 +34,20 @@ pub async fn verify_hash(
             message: "you shoundn't be here".to_string(),
         };
         Err((StatusCode::UNAUTHORIZED, Json(error)))
+    }
+}
+
+fn gen_cookie(autorisation: SecurityStoreAutorization) -> String {
+    let domain = env::domain();
+    if domain != "" {
+        format!(
+            "unique_id={}; Path=/; HttpOnly; SameSite=Lax; Secure; Domain={}",
+            autorisation.cookie, domain
+        )
+    } else {
+        format!(
+            "unique_id={}; Path=/; HttpOnly; SameSite=Lax;",
+            autorisation.cookie
+        )
     }
 }

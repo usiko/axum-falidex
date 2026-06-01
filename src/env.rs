@@ -1,6 +1,13 @@
 use dotenvy::dotenv;
 use std::env;
 
+pub fn is_prod() -> bool {
+    let value = get_env_value("IS_PROD", Some("false".to_string()));
+    value == "true"
+}
+pub fn domain() -> String {
+    get_env_value("DOMAIN", Some("".to_string()))
+}
 pub fn get_encrypt_key() -> String {
     get_env_value("ENCRYPT_KEY", None)
 }
