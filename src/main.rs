@@ -34,7 +34,7 @@ use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
 use tokio::time::interval;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -297,27 +297,22 @@ async fn clean_cache_expired() {
 
 fn get_cors() -> CorsLayer {
     let allowed_origins = crate::env::get_allowed_origins();
-    if allowed_origins == "*" {
-        CorsLayer::new()
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
-            .allow_origin(Any)
+    let origin = if allowed_origins == "*" {
+        "http://localhost:4200"
+            .parse::<axum::http::HeaderValue>()
+            .unwrap()
     } else {
-        CorsLayer::new()
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
-            .allow_origin(allowed_origins.parse::<axum::http::HeaderValue>().unwrap())
-    }
+        allowed_origins.parse::<axum::http::HeaderValue>().unwrap()
+    };
+    CorsLayer::new()
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
+        .allow_credentials(true)
+        .allow_origin(origin)
 }
