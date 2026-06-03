@@ -212,6 +212,7 @@ pub struct UpdateSymboleSens {
 pub struct Img {
     pub id: String,
     pub url: String,
+    pub thumbnail: Option<String>,
     pub migrated: Option<bool>,
 }
 
@@ -232,8 +233,8 @@ pub struct CreateSymbole {
     #[serde(rename = "_id")]
     pub id: String,
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub imgs: Option<Vec<Img>>,
+    //#[serde(skip_serializing_if = "Option::is_none")]
+    //pub imgs: Option<Vec<Img>>,
 }
 
 #[derive(Deserialize, Serialize)]

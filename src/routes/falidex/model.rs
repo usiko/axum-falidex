@@ -241,7 +241,6 @@ impl From<SymboleCreateReq> for falidex_model::CreateSymbole {
         falidex_model::CreateSymbole {
             id: Uuid::new_v4().to_string(),
             name: req.name,
-            imgs: req.imgs,
         }
     }
 }

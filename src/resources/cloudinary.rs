@@ -248,7 +248,12 @@ pub async fn get_picture(local_id: String, height: u16, width: u16) -> Result<Ve
 pub async fn get_delivery_url(local_id: String, attributs: Option<Vec<String>>) -> Option<String> {
     let public_id = get_public_id_by_local_id(&local_id).await?;
     let cache = FileCache::new(".app_temp/delivery_url");
-    if let Ok(Some(url)) = cache.get::<String>(&local_id).await {
+    let attrs_key = attributs
+        .as_deref()
+        .map(|a| a.join(","))
+        .unwrap_or_default();
+    let cache_key = format!("{}_{}", local_id, attrs_key);
+    if let Ok(Some(url)) = cache.get::<String>(&cache_key).await {
         return Some(url);
     }
     let param_url = get_delivery_param_url(public_id.clone(), attributs.clone());
@@ -259,7 +264,7 @@ pub async fn get_delivery_url(local_id: String, attributs: Option<Vec<String>>) 
         signature,
         param_url
     );
-    let _ = cache.set(&local_id, &url, 3600).await;
+    let _ = cache.set(&cache_key, &url, 3600).await;
     Some(url)
 }
 

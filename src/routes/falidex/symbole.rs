@@ -29,6 +29,7 @@ pub async fn get(State(state): State<AppState>) -> Response {
                     .map(|a| Img {
                         id: a.id,
                         url: a.url,
+                        thumbnail: Some(a.thumbnail),
                         migrated: None,
                     })
                     .collect();
