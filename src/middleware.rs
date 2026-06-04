@@ -25,7 +25,7 @@ pub async fn verify_token_middleware(
     // Vérifier si le token existe et est valide
     match token {
         Some(token_str) => {
-            if state.token_store.verify_stored_token(token_str) {
+            if state.security_store.verify_stored_token(token_str) {
                 Ok(next.run(request).await)
             } else {
                 let error = ErrorResult {
@@ -115,6 +115,53 @@ pub async fn verify_jwt_middleware(
             let error = ErrorResult {
                 error: "JWT_MISSING".to_string(),
                 message: "Le header Authorization avec le token JWT est manquant.".to_string(),
+            };
+            Err((StatusCode::UNAUTHORIZED, Json(error)))
+        }
+    }
+}
+
+pub async fn verify_cookie_middleware(
+    State(state): State<AppState>,
+    request: Request,
+    next: Next,
+) -> Result<Response, impl IntoResponse> {
+    // Récupérer l'en-tête Cookie
+    let cookie_header = request
+        .headers()
+        .get("cookie")
+        .and_then(|v| v.to_str().ok());
+    let mut unique_id: Option<&str> = None;
+    if let Some(header) = cookie_header {
+        // Chercher unique_id=... dans la chaîne de cookies
+        for cookie in header.split(';') {
+            let cookie = cookie.trim();
+            if let Some(val) = cookie.strip_prefix("unique_id=") {
+                unique_id = Some(val);
+                break;
+            }
+        }
+    }
+    match unique_id {
+        Some(cookie_val) => {
+            if state.security_store.verify_stored_cookie(cookie_val) {
+                // Vérifie aussi la validité du token associé
+                println!("ok cookie");
+                Ok(next.run(request).await)
+            } else {
+                println!("bad cookie");
+                let error = ErrorResult {
+                    error: "UNAUTHORIZED".to_string(),
+                    message: "Invalid or expired cookie".to_string(),
+                };
+                Err((StatusCode::UNAUTHORIZED, Json(error)))
+            }
+        }
+        None => {
+            println!("no cookie");
+            let error = ErrorResult {
+                error: "UNAUTHORIZED".to_string(),
+                message: "Missing unique_id cookie".to_string(),
             };
             Err((StatusCode::UNAUTHORIZED, Json(error)))
         }

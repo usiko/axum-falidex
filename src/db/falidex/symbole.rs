@@ -1,6 +1,6 @@
 use super::update_helper;
 use crate::model::falidex_model::{
-    CreateSymbole, LinkDetail, OccurenceDetail, Symbole, UpdateSymbole,
+    CreateSymbole, Img, LinkDetail, OccurenceDetail, Symbole, UpdateSymbole,
 };
 use futures::stream::TryStreamExt;
 use mongodb::bson;
@@ -127,4 +127,40 @@ pub async fn get_occurences(db: &Database, id: String) -> Result<Vec<OccurenceDe
     }
 
     Ok(occurences)
+}
+
+pub async fn set_picture_migrated(
+    db: &Database,
+    img: Img,
+    symbole_id: &str,
+) -> Result<String, String> {
+    let col: Collection<Symbole> = db.collection::<Symbole>("symboles");
+
+    // Récupère le symbole pour avoir la liste des images
+    let symbole = col
+        .find_one(doc! { "_id": &symbole_id })
+        .await
+        .map_err(|e| format!("Erreur lors de la récupération du symbole: {}", e))?
+        .ok_or_else(|| "Symbole introuvable".to_string())?;
+
+    let mut update_doc = doc! {};
+    if let Some(mut imgs) = symbole.imgs {
+        for i in &mut imgs {
+            if i.id == img.id {
+                i.migrated = Some(true);
+            }
+        }
+        let imgs_bson = bson::to_bson(&imgs)
+            .map_err(|e| format!("Erreur lors de la sérialisation des images: {}", e))?;
+        update_doc.insert("imgs", imgs_bson);
+    }
+    let (matched, modified) = update_helper::partial_update(&col, &symbole_id, update_doc).await?;
+
+    if matched == 0 {
+        Err("Aucun symbole trouvé avec cet identifiant".to_string())
+    } else if modified > 0 {
+        Ok("Symbole mis à jour avec succès".to_string())
+    } else {
+        Ok("Aucune modification détectée (valeurs identiques)".to_string())
+    }
 }

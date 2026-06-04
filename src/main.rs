@@ -1,17 +1,25 @@
+mod cache;
 mod db;
 mod encrypt;
 mod env;
 mod middleware;
+mod migrate;
 mod model;
+mod resources;
 mod routes;
+mod security_utils;
 mod state;
-mod token;
+
+use std::time::Duration;
 
 use crate::db::falidex::relations::fix_relation_id;
-use crate::middleware::{verify_jwt_middleware, verify_token_middleware};
-use crate::routes::falidex;
+use crate::middleware::{verify_cookie_middleware, verify_jwt_middleware, verify_token_middleware};
+use crate::migrate::migrate_symboles_imgs;
+use crate::resources::cloudinary;
+use crate::routes::falidex::symbole::{add_picture, get_picture};
+use crate::routes::{falidex, resource};
 use crate::routes::{token::verify_hash, users::get_current_user};
-use crate::token::show_dev_ex_token;
+use crate::state::AppState;
 use axum::http::{
     Method,
     header::{AUTHORIZATION, CONTENT_TYPE},
@@ -21,51 +29,54 @@ use axum::{
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
 };
+use dotenvy::dotenv;
 use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
+use tokio::time::interval;
 use tower_http::cors::{Any, CorsLayer};
 #[tokio::main]
 async fn main() {
-    show_dev_ex_token("visitor");
-
+    dotenv().ok();
     let app_state = get_state().await;
-    match fix_relation_id(&app_state.db.db).await {
-        Ok(msg) => println!("Fix relation IDs: {}", msg),
-        Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
-    }
+    let fix_relation_state = app_state.clone();
+    let webserver_state = app_state.clone();
+    let migration_state = app_state.clone();
+    tokio::spawn(async move {
+        let is_activated = env::is_fix_relation_id_activated();
+        if is_activated {
+            match fix_relation_id(&fix_relation_state.db.db).await {
+                Ok(msg) => println!("Fix relation IDs: {}", msg),
+                Err(e) => eprintln!("Erreur lors du fix des IDs de relations: {}", e),
+            }
+        }
+    });
+    tokio::spawn(async move {
+        let is_activated = env::is_migration_img_activated();
+        if is_activated {
+            migrate_symboles_imgs(&migration_state).await;
+        }
+    });
+    tokio::spawn(async move { clean_cache_expired().await });
+    init_webserver(webserver_state).await
+}
 
-    let allowed_origins = crate::env::get_allowed_origins();
-    let cors = if allowed_origins == "*" {
-        CorsLayer::new()
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
-            .allow_origin(Any)
-    } else {
-        CorsLayer::new()
-            .allow_methods([
-                Method::GET,
-                Method::POST,
-                Method::PUT,
-                Method::DELETE,
-                Method::OPTIONS,
-            ])
-            .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
-            .allow_origin(allowed_origins.parse::<axum::http::HeaderValue>().unwrap())
-    };
+async fn init_webserver(app_state: AppState) {
+    let cors = get_cors();
     let free = Router::new()
         .route("/token", post(verify_hash))
         .with_state(app_state.clone())
         .layer(cors.clone());
+    let cookie_protected = Router::new()
+        .route("/resource/{id}/{height}/{width}", get(get_picture))
+        .with_state(app_state.clone())
+        .layer(from_fn_with_state(
+            app_state.clone(),
+            verify_cookie_middleware,
+        ))
+        .layer(cors.clone());
 
     let token = Router::new()
-        .route("/", get(root))
         .route("/auth", post(auth))
         .route("/user/id/{user_id}", get(get_user))
         .route("/collection/circulaires", get(falidex::circulaire::get))
@@ -208,7 +219,12 @@ async fn main() {
         .route(
             "/collection/symboles/{id}",
             put(falidex::symbole::update).delete(falidex::symbole::delete),
-        );
+        )
+        .route(
+            "/collection/symboles/{id}/resource/upload",
+            post(add_picture),
+        )
+        .route("/resource/remove/{id}", delete(resource::remove));
 
     let edit_route_falidex_symbole_accessoire = Router::new()
         .route(
@@ -261,7 +277,7 @@ async fn main() {
         .with_state(app_state.clone())
         .layer(from_fn_with_state(app_state, verify_jwt_middleware))
         .layer(cors);
-    let app = free.merge(token).merge(protected);
+    let app = free.merge(cookie_protected).merge(token).merge(protected);
     // run our app with hyper, listening on the PORT environment variable (for Heroku) or 3000 by default
     let port = crate::env::get_port();
     let addr = format!("0.0.0.0:{}", port);
@@ -270,30 +286,36 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn root() -> String {
-    let base_message = "this is a rust web server!";
-
-    let weather = match get_current_weather().await {
-        Ok(w) => w,
-        Err(e) => {
-            eprintln!("Erreur lors de la récupération de la météo : {}", e);
-            return format!("{} Impossible de récupérer la météo.", base_message);
-        }
-    };
-
-    // weather est déjà une String, pas besoin de unwrap
-    format!("{}\n{}", base_message, weather)
+async fn clean_cache_expired() {
+    let mut interval = interval(Duration::from_mins(15));
+    cloudinary::clean_cache_expired();
+    loop {
+        interval.tick().await;
+        cloudinary::clean_cache_expired();
+    }
 }
 
-async fn get_current_weather() -> Result<String, reqwest::Error> {
-    let url = format!(
-        "https://api.openweathermap.org/data/2.5/weather?lat=43.0&lon=6.6&appid={}",
-        "eb0b873a85379b2759eda56604289ce1"
-    );
-    let response = reqwest::get(url).await?;
+fn get_cors() -> CorsLayer {
+    let allowed_origins = crate::env::get_allowed_origins();
+    let mut cors = CorsLayer::new()
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
+        .allow_credentials(true);
 
-    let body = response.text().await?;
-    println!("{}", body);
-
-    Ok(body)
+    if allowed_origins == "*" {
+        cors = cors.allow_origin(tower_http::cors::Any)
+    } else {
+        let origins: Vec<axum::http::HeaderValue> = allowed_origins
+            .split(',')
+            .map(|o| o.trim().parse::<axum::http::HeaderValue>().unwrap())
+            .collect();
+        cors = cors.allow_origin(origins)
+    }
+    cors
 }
