@@ -24,9 +24,14 @@ pub async fn verify_hash(
             token: autorisation.token,
         })
         .into_response();
-        response
-            .headers_mut()
-            .insert(SET_COOKIE, HeaderValue::from_str(&cookie).unwrap());
+        let cookie_header = HeaderValue::from_str(&cookie).map_err(|_| {
+            let error = ErrorResult {
+                error: "INTERNAL_SERVER_ERROR".to_string(),
+                message: "Failed to build Set-Cookie header".to_string(),
+            };
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(error))
+        })?;
+        response.headers_mut().insert(SET_COOKIE, cookie_header);
         Ok(response)
     } else {
         let error = ErrorResult {
