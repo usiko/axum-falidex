@@ -315,7 +315,7 @@ fn get_cors() -> CorsLayer {
             .split(',')
             .map(|o| o.trim().parse::<axum::http::HeaderValue>().unwrap())
             .collect();
-        cors = cors.allow_origin(origins)
+        cors = cors.allow_origin(tower_http::cors::AllowOrigin::list(origins))
     }
     cors
 }
