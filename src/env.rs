@@ -1,4 +1,3 @@
-use dotenvy::dotenv;
 use std::env;
 
 pub fn is_prod() -> bool {
