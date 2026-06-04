@@ -29,15 +29,11 @@ pub fn verify_temp_token(role: &str, timestamp: i64, hash_received: &str) -> boo
     let now = Utc::now().timestamp();
 
     // Vérifier expiration (60 secondes)
-    println!("{}-{}={}", now, timestamp, now - timestamp);
     if timestamp > now || now - timestamp > 60 {
-        println!("token not given because timestamp");
         return false;
     }
-    println!("token timestamp ok");
     // Vérifier le hash
     let expected_hash = hash_token(role, timestamp);
-    println!("hash from {} {} result {}", role, timestamp, expected_hash);
     expected_hash == hash_received
 }
 
