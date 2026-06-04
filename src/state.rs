@@ -1,6 +1,5 @@
 use axum::extract::FromRef;
 use axum_jwt::{Decoder, jsonwebtoken::DecodingKey};
-use uuid::Uuid;
 
 use crate::db::mongo::MongoDB;
 use crate::security_utils::SecurityStore;
