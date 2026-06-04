@@ -297,7 +297,7 @@ async fn clean_cache_expired() {
 
 fn get_cors() -> CorsLayer {
     let allowed_origins = crate::env::get_allowed_origins();
-    let base = CorsLayer::new()
+    let mut cors = CorsLayer::new()
         .allow_methods([
             Method::GET,
             Method::POST,
@@ -305,11 +305,17 @@ fn get_cors() -> CorsLayer {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()]);
+        .allow_headers([CONTENT_TYPE, AUTHORIZATION, "X-Token".parse().unwrap()])
+        .allow_credentials(true);
+
     if allowed_origins == "*" {
-        base.allow_origin(Any)
+        cors = cors.allow_origin(tower_http::cors::Any)
     } else {
-        base.allow_credentials(true)
-            .allow_origin(allowed_origins.parse::<axum::http::HeaderValue>().unwrap())
+        let origins: Vec<axum::http::HeaderValue> = allowed_origins
+            .split(',')
+            .map(|o| o.trim().parse::<axum::http::HeaderValue>().unwrap())
+            .collect();
+        cors = cors.allow_origin(origins)
     }
+    cors
 }

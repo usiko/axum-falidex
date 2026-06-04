@@ -342,11 +342,6 @@ fn get_delivery_signature(param_url_delivery: String) -> String {
     format!("s--{}--", hash.chars().take(8).collect::<String>())
 }
 
-    let hash = BASE64_URL_SAFE_NO_PAD.encode(hasher.finalize());
-    println!("get delivery hash {}", &hash);
-    format!("s--{}--", hash.chars().take(8).collect::<String>())
-}
-
 fn get_upload_attributes(
     preset: String,
     folder: String,
