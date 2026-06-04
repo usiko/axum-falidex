@@ -149,7 +149,7 @@ pub async fn verify_cookie_middleware(
                 println!("ok cookie");
                 Ok(next.run(request).await)
             } else {
-                println!("bad cookie {}", cookie_val);
+                println!("bad cookie");
                 let error = ErrorResult {
                     error: "UNAUTHORIZED".to_string(),
                     message: "Invalid or expired cookie".to_string(),
