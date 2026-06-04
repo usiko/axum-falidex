@@ -336,8 +336,11 @@ fn get_delivery_param_url(id: String, attributs: Option<Vec<String>>) -> String 
 fn get_delivery_signature(param_url_delivery: String) -> String {
     let mut hasher = Sha256::new();
     let to_sign = format!("{}{}", param_url_delivery, get_api_key_secret());
-    println!("get delivery signature {}", &to_sign);
     hasher.update(to_sign.as_bytes());
+
+    let hash = BASE64_URL_SAFE_NO_PAD.encode(hasher.finalize());
+    format!("s--{}--", hash.chars().take(8).collect::<String>())
+}
 
     let hash = BASE64_URL_SAFE_NO_PAD.encode(hasher.finalize());
     println!("get delivery hash {}", &hash);
