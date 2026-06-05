@@ -9,27 +9,10 @@ pub async fn testing_cors(origins: &[&str]) {
     );
     println!("{}", "-".repeat(120));
     for origin in origins {
-        request(origin, &cors).await;
         request_token(origin, &cors).await;
         request_token_with_credentials(origin).await;
     }
     println!();
-}
-
-async fn request(origin: &str, cors_config: &str) {
-    let port = env::get_port();
-    let client = reqwest::Client::new();
-    let result = client
-        .request(
-            reqwest::Method::OPTIONS,
-            format!("http://localhost:{}/isalive", port),
-        )
-        .header("Origin", origin)
-        .header("Access-Control-Request-Method", "GET")
-        .send()
-        .await;
-
-    print_cors_result("/isalive", origin, cors_config, result);
 }
 
 async fn request_token(origin: &str, cors_config: &str) {
