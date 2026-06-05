@@ -30,6 +30,12 @@ pub fn get_derivated_token_hash_key() -> String {
 pub fn get_allowed_origins() -> String {
     get_env_value("CORS_ORIGIN", Some("*".to_string()))
 }
+pub fn get_cors_test_origins() -> Option<Vec<String>> {
+    match std::env::var("CORS_TEST_ORIGINS") {
+        Ok(val) if !val.is_empty() => Some(val.split(',').map(|o| o.trim().to_string()).collect()),
+        _ => None,
+    }
+}
 pub fn get_bdd() -> String {
     get_env_value("BDD", Some("test-falidex".to_string()))
 }
