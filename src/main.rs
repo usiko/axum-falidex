@@ -288,7 +288,11 @@ async fn init_webserver(app_state: AppState) {
     // run our app with hyper, listening on the PORT environment variable (for Heroku) or 3000 by default
     let port = crate::env::get_port();
     let addr = format!("0.0.0.0:{}", port);
-    println!("Server listening on {}", addr);
+    println!(
+        "Server v{} listening on {}",
+        env!("CARGO_PKG_VERSION"),
+        addr
+    );
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
