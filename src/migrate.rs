@@ -17,10 +17,10 @@ pub async fn migrate_symboles_imgs(state: &AppState) {
             let res = migrate_symbole_img(db, img, &symbole.id).await;
             match res {
                 Ok(mes) => {
-                    println!("migrations ok {}", mes)
+                    println!("[MIGRATION] ok {}", mes)
                 }
                 Err(err) => {
-                    eprintln!("migrations nok {}", err)
+                    eprintln!("[MIGRATION] error {}", err)
                 }
             }
         }

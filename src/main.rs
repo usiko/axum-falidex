@@ -9,7 +9,7 @@ mod resources;
 mod routes;
 mod security_utils;
 mod state;
-
+mod utils;
 use std::time::Duration;
 
 use crate::db::falidex::relations::fix_relation_id;
@@ -34,7 +34,7 @@ use routes::persistence::{get_persistence, set_persistence};
 use routes::users::{auth, get_user};
 use state::get_state;
 use tokio::time::interval;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::{AllowOrigin, CorsLayer};
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -58,6 +58,13 @@ async fn main() {
         }
     });
     tokio::spawn(async move { clean_cache_expired().await });
+    if let Some(test_origins) = env::get_cors_test_origins() {
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(10)).await;
+            let origins: Vec<&str> = test_origins.iter().map(|s| s.as_str()).collect();
+            utils::route_tester::testing_cors(&origins).await;
+        });
+    }
     init_webserver(webserver_state).await
 }
 
@@ -309,13 +316,18 @@ fn get_cors() -> CorsLayer {
         .allow_credentials(true);
 
     if allowed_origins == "*" {
-        cors = cors.allow_origin(tower_http::cors::Any)
+        // Any + allow_credentials(true) est interdit par la spec HTTP ;
+        // mirror_request renvoie l'origine du requêteur, ce qui autorise tout
+        // en restant compatible avec les credentials.
+        println!("cors allowed {:?}", AllowOrigin::mirror_request());
+        cors = cors.allow_origin(AllowOrigin::mirror_request())
     } else {
         let origins: Vec<axum::http::HeaderValue> = allowed_origins
             .split(',')
             .map(|o| o.trim().parse::<axum::http::HeaderValue>().unwrap())
             .collect();
-        cors = cors.allow_origin(tower_http::cors::AllowOrigin::list(origins))
+        println!("cors allowed {:?}", origins);
+        cors = cors.allow_origin(AllowOrigin::list(origins))
     }
     cors
 }
