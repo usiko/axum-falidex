@@ -37,7 +37,19 @@ pub fn get_cors_test_origins() -> Option<Vec<String>> {
     }
 }
 pub fn get_bdd() -> String {
-    get_env_value("BDD", Some("test-falidex".to_string()))
+    get_env_value("BDD", None)
+}
+pub fn get_mongo_user() -> String {
+    get_env_value("MONGO_USER", None)
+}
+pub fn get_mongo_password() -> String {
+    get_env_value("MONGO_password", None)
+}
+pub fn get_mongo_host() -> String {
+    get_env_value("MONGO_HOST", None)
+}
+pub fn get_mongo_app_name() -> String {
+    get_env_value("MONGO_APP_NAME", None)
 }
 
 pub fn get_cloudinary_main_folder() -> String {
