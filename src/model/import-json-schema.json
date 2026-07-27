@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ImportBatchRequest",
+  "description": "Corps de la requête POST /collection/import : le batch d'opérations généré par l'IA (schéma des opérations, cf. import-json-schema.json du frontend) accompagné du contexte connu côté dashboard (nom de l'import, code cible).",
+  "type": "object",
+  "required": ["name", "operations"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Nom donné à cet import dans le dashboard, pour la traçabilité (QUE-68)."
+    },
+    "linkId": {
+      "type": "string",
+      "description": "Id du code existant à mettre à jour. Mutuellement exclusif avec newLink."
+    },
+    "newLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "annee": { "type": "integer", "minimum": 0 }
+      },
+      "description": "Données de la fiche à créer si aucun code existant n'est ciblé. Mutuellement exclusif avec linkId."
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["op", "entity", "id", "confidence", "incertain"],
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": ["add", "update", "remove"],
+            "description": "Type d'opération à appliquer."
+          },
+          "entity": {
+            "type": "string",
+            "enum": [
+              "circulaire",
+              "color",
+              "filiere",
+              "placement",
+              "position",
+              "symbole",
+              "signification",
+              "symboleSens",
+              "symboleAccessoire",
+              "relation"
+            ],
+            "description": "Type d'entité concernée par l'opération."
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Id réel si l'entité existe déjà, sinon un id temporaire préfixé \"tmp:\" réutilisable par d'autres opérations du même batch."
+          },
+          "fields": {
+            "type": "object",
+            "description": "Champs de l'entité concernée. Pour un update, uniquement les champs qui changent."
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confiance de l'IA dans cette opération, entre 0 et 1."
+          },
+          "incertain": {
+            "type": "boolean",
+            "description": "true si l'information est ambiguë, absente du PDF ou à vérifier manuellement. Un batch contenant une opération incertain=true est refusé par l'endpoint."
+          },
+          "note": {
+            "type": "string",
+            "description": "Explique la raison du doute quand incertain est true. Optionnel sinon."
+          }
+        }
+      }
+    }
+  }
+}
