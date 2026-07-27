@@ -268,10 +268,13 @@ async fn init_webserver(app_state: AppState) {
             put(falidex::circulaire_color::update).delete(falidex::circulaire_color::delete),
         );
 
+    let edit_route_falidex_import = Router::new().route("/collection/import", post(falidex::import::create));
+
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))
         .route("/user/", get(get_current_user))
         .merge(edit_route_falidex_link)
+        .merge(edit_route_falidex_import)
         .merge(edit_route_falidex_circulaire)
         .merge(edit_route_falidex_color)
         .merge(edit_route_falidex_filiere)

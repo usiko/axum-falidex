@@ -2,6 +2,7 @@ pub mod circulaire;
 pub mod circulaire_color;
 pub mod color;
 pub mod filiere;
+pub mod import;
 pub mod import_log;
 pub mod link;
 pub mod model;
