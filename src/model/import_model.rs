@@ -1,5 +1,36 @@
+use jsonschema::Validator;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+
+/// Schéma JSON (draft-07) du corps de `POST /collection/import`, en fichier séparé — même
+/// approche que `import-json-schema.json` côté frontend (`falidex-dashboard`) — plutôt
+/// qu'encodé uniquement dans les types Rust ci-dessous : c'est la source canonique du contrat
+/// de la requête, que les types Rust reflètent.
+const IMPORT_JSON_SCHEMA_STR: &str = include_str!("import-json-schema.json");
+
+static IMPORT_JSON_VALIDATOR: Lazy<Validator> = Lazy::new(|| {
+    let schema: Value = serde_json::from_str(IMPORT_JSON_SCHEMA_STR)
+        .expect("import-json-schema.json doit être un JSON valide");
+    jsonschema::validator_for(&schema)
+        .expect("import-json-schema.json doit être un schéma JSON valide")
+});
+
+/// Valide le JSON brut d'une requête d'import contre `import-json-schema.json`, avant même de
+/// tenter de le désérialiser en `ImportBatchRequest`, pour des messages d'erreur agrégés et
+/// lisibles (même principe que la validation AJV côté frontend).
+pub fn validate_batch_json(value: &Value) -> Result<(), Vec<String>> {
+    let errors: Vec<String> = IMPORT_JSON_VALIDATOR
+        .iter_errors(value)
+        .map(|e| format!("{}: {}", e.instance_path(), e))
+        .collect();
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
 
 /// Format JSON d'un batch d'import (QUE-67), généré manuellement par une IA externe à partir
 /// d'un prompt (QUE-71) puis revu/corrigé côté dashboard (QUE-70) avant d'être envoyé ici.
@@ -238,5 +269,61 @@ mod tests {
         assert_eq!(parsed.operations[0].resolved_id, "real-id-1");
         assert!(json.contains("\"_id\":\"code-1\""));
         assert!(!json.contains("\"error\""));
+    }
+
+    #[test]
+    fn validate_batch_json_accepts_a_conforming_batch() {
+        let value = serde_json::json!({
+            "name": "Import circulaire 2024-12",
+            "newLink": { "name": "Croix de guerre 1939-1945" },
+            "operations": [
+                {
+                    "op": "add",
+                    "entity": "symbole",
+                    "id": "tmp:symbole-1",
+                    "fields": { "name": "Croix de guerre 1939-1945" },
+                    "confidence": 0.95,
+                    "incertain": false
+                }
+            ]
+        });
+
+        assert_eq!(validate_batch_json(&value), Ok(()));
+    }
+
+    #[test]
+    fn validate_batch_json_rejects_an_incomplete_operation() {
+        let value = serde_json::json!({
+            "name": "Import circulaire 2024-12",
+            "operations": [
+                { "op": "add", "entity": "symbole" }
+            ]
+        });
+
+        let errors = validate_batch_json(&value).expect_err("should be rejected");
+        assert!(!errors.is_empty());
+    }
+
+    #[test]
+    fn validate_batch_json_rejects_an_unknown_top_level_property() {
+        let value = serde_json::json!({
+            "name": "x",
+            "operations": [],
+            "unexpectedField": true
+        });
+
+        assert!(validate_batch_json(&value).is_err());
+    }
+
+    #[test]
+    fn validate_batch_json_rejects_a_confidence_out_of_range() {
+        let value = serde_json::json!({
+            "name": "x",
+            "operations": [
+                { "op": "add", "entity": "color", "id": "tmp:color-1", "confidence": 1.5, "incertain": false }
+            ]
+        });
+
+        assert!(validate_batch_json(&value).is_err());
     }
 }
