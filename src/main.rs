@@ -147,6 +147,11 @@ async fn init_webserver(app_state: AppState) {
         )
         .route("/collection/links", get(falidex::link::get))
         .route("/collection/link/{link_id}", get(falidex::link::get_item))
+        .route("/collection/import-log", get(falidex::import_log::get))
+        .route(
+            "/collection/import-log/{id}",
+            get(falidex::import_log::get_item),
+        )
         .layer(from_fn_with_state(
             app_state.clone(),
             verify_token_middleware,
