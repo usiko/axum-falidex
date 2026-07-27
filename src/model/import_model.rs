@@ -73,6 +73,57 @@ pub struct ImportBatchRequest {
     pub operations: Vec<ImportOperation>,
 }
 
+/// Trace d'une opération réellement appliquée (ou tentée) par un import, pour la traçabilité
+/// QUE-68 : "avant/après par item".
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ImportOperationResult {
+    pub op: ImportOperationType,
+    pub entity: ImportEntityType,
+    /// Id tel que fourni dans le batch (réel ou "tmp:...").
+    #[serde(rename = "sourceId")]
+    pub source_id: String,
+    /// Id réel MongoDB effectivement utilisé, après résolution des ids temporaires.
+    #[serde(rename = "resolvedId")]
+    pub resolved_id: String,
+    /// État avant l'opération (absent pour un `add`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub before: Option<Value>,
+    /// État après l'opération (absent pour un `remove`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub after: Option<Value>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ImportCodeStatus {
+    Applied,
+    Failed,
+}
+
+/// Le "code" (au sens : nom donné à un batch d'import) tracé pour QUE-68. Nouvelle collection,
+/// distincte des "codes" au sens fiche (`LinkDetail`) : ici il s'agit du nom donné à *cet import*
+/// dans le dashboard, pas d'une fiche de décoration.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ImportCode {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub name: String,
+    pub date: String,
+    #[serde(rename = "userId")]
+    pub user_id: String,
+    #[serde(rename = "userName")]
+    pub user_name: String,
+    /// Fiche ciblée par l'import (existante ou nouvellement créée), si les opérations en
+    /// touchaient une.
+    #[serde(rename = "linkId", skip_serializing_if = "Option::is_none")]
+    pub link_id: Option<String>,
+    pub status: ImportCodeStatus,
+    pub operations: Vec<ImportOperationResult>,
+    /// Message d'erreur si `status` est `failed`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -155,5 +206,37 @@ mod tests {
 
         let batch: ImportBatchRequest = serde_json::from_str(json).expect("should deserialize");
         assert!(batch.operations[0].fields.is_empty());
+    }
+
+    #[test]
+    fn round_trips_an_import_code_through_json() {
+        let code = ImportCode {
+            id: "code-1".to_string(),
+            name: "Import circulaire 2024-12".to_string(),
+            date: "2026-07-27T00:00:00Z".to_string(),
+            user_id: "user-1".to_string(),
+            user_name: "quentin".to_string(),
+            link_id: Some("link-1".to_string()),
+            status: ImportCodeStatus::Applied,
+            operations: vec![ImportOperationResult {
+                op: ImportOperationType::Add,
+                entity: ImportEntityType::Symbole,
+                source_id: "tmp:symbole-1".to_string(),
+                resolved_id: "real-id-1".to_string(),
+                before: None,
+                after: Some(serde_json::json!({ "name": "Croix de guerre 1939-1945" })),
+            }],
+            error: None,
+        };
+
+        let json = serde_json::to_string(&code).expect("should serialize");
+        let parsed: ImportCode = serde_json::from_str(&json).expect("should deserialize");
+
+        assert_eq!(parsed.id, "code-1");
+        assert_eq!(parsed.status, ImportCodeStatus::Applied);
+        assert_eq!(parsed.operations.len(), 1);
+        assert_eq!(parsed.operations[0].resolved_id, "real-id-1");
+        assert!(json.contains("\"_id\":\"code-1\""));
+        assert!(!json.contains("\"error\""));
     }
 }
