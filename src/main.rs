@@ -147,6 +147,11 @@ async fn init_webserver(app_state: AppState) {
         )
         .route("/collection/links", get(falidex::link::get))
         .route("/collection/link/{link_id}", get(falidex::link::get_item))
+        .route("/collection/import-log", get(falidex::import_log::get))
+        .route(
+            "/collection/import-log/{id}",
+            get(falidex::import_log::get_item),
+        )
         .layer(from_fn_with_state(
             app_state.clone(),
             verify_token_middleware,
@@ -263,10 +268,13 @@ async fn init_webserver(app_state: AppState) {
             put(falidex::circulaire_color::update).delete(falidex::circulaire_color::delete),
         );
 
+    let edit_route_falidex_import = Router::new().route("/collection/import", post(falidex::import::create));
+
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))
         .route("/user/", get(get_current_user))
         .merge(edit_route_falidex_link)
+        .merge(edit_route_falidex_import)
         .merge(edit_route_falidex_circulaire)
         .merge(edit_route_falidex_color)
         .merge(edit_route_falidex_filiere)
