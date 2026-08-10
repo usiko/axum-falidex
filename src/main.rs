@@ -268,7 +268,14 @@ async fn init_webserver(app_state: AppState) {
             put(falidex::circulaire_color::update).delete(falidex::circulaire_color::delete),
         );
 
-    let edit_route_falidex_import = Router::new().route("/collection/import", post(falidex::import::create));
+    let edit_route_falidex_import = Router::new()
+        .route("/collection/import", post(falidex::import::create))
+        .route(
+            "/collection/import-draft",
+            get(falidex::import_draft::get)
+                .post(falidex::import_draft::save)
+                .delete(falidex::import_draft::delete),
+        );
 
     let protected = Router::new()
         .route("/persistence", get(get_persistence).post(set_persistence))

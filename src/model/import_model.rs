@@ -155,6 +155,20 @@ pub struct ImportCode {
     pub error: Option<String>,
 }
 
+/// Brouillon d'import laissé en cours par un utilisateur (JSON collé, lignes du diff et
+/// corrections, formulaire...), pour pouvoir le reprendre depuis un autre poste ou l'annuler.
+/// Un seul brouillon actif par utilisateur (`_id` = `user_id`) : une nouvelle sauvegarde
+/// remplace la précédente. Le contenu (`payload`) est produit et interprété uniquement par le
+/// dashboard : le serveur se contente de le stocker et de le restituer tel quel.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ImportDraft {
+    #[serde(rename = "_id")]
+    pub user_id: String,
+    #[serde(rename = "savedAt")]
+    pub saved_at: String,
+    pub payload: Value,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
